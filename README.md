@@ -106,4 +106,4 @@ Phase 4: Domain & Security
 Final deployment will involve a custom domain with SSL encryption (HTTPS) to ensure that all financial discussions and personal NID/RDB verification documents are handled securely.
 
 ### Video demo link
-Video demo: [https://youtu.be/mD-5MNWpe-g]
+Video demo: [https://drive.google.com/file/d/1cQ0wKVBeQPxWm8F5QCoH5ot2aTN1aXK_/view?usp=sharing]

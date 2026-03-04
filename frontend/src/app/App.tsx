@@ -24,10 +24,11 @@ import { Settings } from './components/Settings';
 
 function AppLayout() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar /> 
-      <main className="flex-1">
-        <Outlet /> 
+    <div className="min-h-screen flex">
+      <Navbar />
+      {/* Main content: right of sidebar on desktop, below top bar on mobile */}
+      <main className="flex-1 min-w-0 md:pl-64 pt-14 md:pt-0">
+        <Outlet />
       </main>
     </div>
   );

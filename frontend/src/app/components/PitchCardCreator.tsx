@@ -85,13 +85,19 @@ export function PitchCardCreator() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const fundingGoalNum = parseInt(formData.fundingGoal.replace(/\D/g, ''), 10) || 0;
+    if (fundingGoalNum <= 0) {
+      alert('Please enter a valid funding goal (RWF).');
+      return;
+    }
+
     try {
       const payload: Record<string, unknown> = {
-        name: formData.projectName,
+        name: formData.projectName.trim(),
         location: formData.location,
-        fundingGoal: parseInt(formData.fundingGoal, 10),
-        roi: formData.roi,
-        description: formData.description,
+        fundingGoal: fundingGoalNum,
+        roi: formData.roi.trim(),
+        description: formData.description.trim(),
         category: formData.category,
       };
       if (videoUrl) payload.video = videoUrl;
@@ -106,7 +112,14 @@ export function PitchCardCreator() {
 
       navigate('/dashboard');
     } catch (error: any) {
-      alert(error.response?.data?.message || error.error || 'Failed to create project');
+      const msg = error.response?.data?.message
+        || error.response?.data?.error
+        || (error.response?.data?.errors && Array.isArray(error.response.data.errors)
+          ? error.response.data.errors.map((e: { msg?: string }) => e.msg).filter(Boolean).join(', ')
+          : null)
+        || error.message
+        || 'Failed to save project.';
+      alert(msg);
     }
   };
 
@@ -161,9 +174,12 @@ export function PitchCardCreator() {
                   { id: 'Agriculture', icon: '🚜' },
                   { id: 'Tech', icon: '📱' },
                   { id: 'Retail', icon: '🛍️' },
-                  { id: 'Service', icon: '🛠️' },
-                  { id: 'Fashion', icon: '👕' }
-                
+                  { id: 'Manufacturing', icon: '🏭' },
+                  { id: 'Services', icon: '🛠️' },
+                  { id: 'Healthcare', icon: '🏥' },
+                  { id: 'Education', icon: '📚' },
+                  { id: 'Fashion', icon: '👕' },
+                  { id: 'Other', icon: '📦' },
                 ].map((cat) => (
                   <button
                     key={cat.id}

@@ -20,7 +20,7 @@ const projectSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Agriculture', 'Tech', 'Retail', 'Manufacturing', 'Services', 'Healthcare', 'Education', 'Other']
+    enum: ['Agriculture', 'Tech', 'Retail', 'Manufacturing', 'Services', 'Healthcare', 'Education', 'Fashion', 'Other']
   },
   location: {
     type: String,

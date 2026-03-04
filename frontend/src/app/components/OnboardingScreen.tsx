@@ -1,107 +1,113 @@
 import { useNavigate } from 'react-router-dom';
-import { Lightbulb, TrendingUp, Target, Eye } from 'lucide-react';
+import { Lightbulb, TrendingUp, Target, Eye, ArrowRight } from 'lucide-react';
 import { Footer } from './Footer';
 
 export function OnboardingScreen() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-900">
-      {/* Hero: no background image */}
-      <section className="flex flex-col items-center justify-center p-6 min-h-[70vh] shrink-0">
-        <div className="max-w-2xl w-full space-y-6">
-          <div className="text-center">
-            <h1 className="text-white text-4xl font-bold mb-2">Welcome to</h1>
-            <h2 className="text-white text-5xl font-extrabold mb-6 tracking-tight">
-              PitchBridge
-            </h2>
-            <p className="text-slate-300 text-lg font-medium">
-              Connecting Rwandan Entrepreneurs with Investors
+    <div className="min-h-screen flex flex-col bg-[#0f172a] text-slate-200 selection:bg-blue-500/30">
+      {/* Hero Section */}
+      <section className="relative flex flex-col items-center justify-center px-6 pt-20 pb-16 min-h-[85vh] overflow-hidden">
+        {/* Subtle Background Accent (No Shadow) */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.05)_0%,transparent_50%)] pointer-events-none" />
+
+        <div className="max-w-5xl w-full z-10">
+          <div className="text-center mb-16 space-y-4">
+            <span className="inline-block py-1 px-3 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest">
+              Rwanda's Innovation Hub
+            </span>
+            <h1 className="text-white text-6xl md:text-7xl font-black tracking-tighter">
+              Pitch<span className="text-blue-500">Bridge</span>
+            </h1>
+            <p className="text-slate-400 text-xl max-w-xl mx-auto font-light leading-relaxed">
+              Bridging the gap between visionary Rwandan founders and investment capital.
             </p>
           </div>
 
-          <div className="space-y-5">
+          {/* Action Cards: Flex Row */}
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Entrepreneur Card */}
             <button
               onClick={() => navigate('/register?role=entrepreneur')}
-              className="w-full bg-green-600 hover:bg-green-500 text-white rounded-2xl p-6 transition-all transform hover:scale-[1.02] shadow-2xl group border border-white/10"
+              className="group relative flex-1 bg-slate-800/40 border border-white/10 rounded-3xl p-8 text-left transition-all duration-300 hover:border-green-500/50 hover:bg-slate-800/60"
             >
-              <div className="flex items-center justify-center gap-4 mb-2">
-                <Lightbulb className="w-10 h-10 group-hover:animate-pulse" />
-                <span className="text-3xl font-bold">I have an Idea</span>
+              <div className="h-14 w-14 rounded-2xl bg-green-500/10 flex items-center justify-center mb-6 border border-green-500/20">
+                <Lightbulb className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform" />
               </div>
-              <p className="text-green-50 text-base opacity-90">
-                Showcase your vision and secure funding
+              <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                I have an Idea <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+              </h3>
+              <p className="text-slate-400 leading-relaxed">
+                Launch your startup journey. Showcase your vision to a curated network of verified investors.
               </p>
             </button>
 
+            {/* Investor Card */}
             <button
               onClick={() => navigate('/register?role=investor')}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-2xl p-6 transition-all transform hover:scale-[1.02] shadow-2xl group border border-white/10"
+              className="group relative flex-1 bg-slate-800/40 border border-white/10 rounded-3xl p-8 text-left transition-all duration-300 hover:border-blue-500/50 hover:bg-slate-800/60"
             >
-              <div className="flex items-center justify-center gap-4 mb-2">
-                <TrendingUp className="w-10 h-10 group-hover:translate-y-[-2px] transition-transform" />
-                <span className="text-3xl font-bold">I want to Invest</span>
+              <div className="h-14 w-14 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-6 border border-blue-500/20">
+                <TrendingUp className="w-8 h-8 text-blue-500 group-hover:scale-110 transition-transform" />
               </div>
-              <p className="text-blue-50 text-base opacity-90">
-                Discover and back high-potential startups
+              <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                I want to Invest <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+              </h3>
+              <p className="text-slate-400 leading-relaxed">
+                Discover high-potential Rwandan ventures. Access verified pitch decks and financial data.
               </p>
             </button>
           </div>
 
-          <div className="text-center pt-4">
+          <div className="text-center mt-12">
             <button
-              type="button"
               onClick={() => navigate('/login')}
-              className="text-slate-300 hover:text-white text-sm font-medium transition-colors"
+              className="text-slate-500 hover:text-white text-sm font-medium transition-colors border-b border-transparent hover:border-blue-500 pb-1"
             >
-              Already have an account? Log in
+              Already have an account? <span className="text-blue-400">Log in here</span>
             </button>
           </div>
         </div>
       </section>
 
-      {/* Full-width scrollable: Mission, Vision, About */}
-      <section className="w-full flex-1 px-4 sm:px-6 lg:px-8 py-10 md:py-16">
-        <div className="w-full max-w-none mx-auto space-y-8 md:space-y-12">
-          {/* Mission & Vision: full width row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full">
-            <div className="w-full rounded-2xl bg-slate-800 border border-slate-700 p-6 md:p-8 text-left">
-              <h3 className="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2 mb-3">
-                <Target className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                Our Mission
-              </h3>
-              <p className="text-slate-300 text-base md:text-lg leading-relaxed">
-                To empower Rwandan entrepreneurs with access to capital and mentorship while giving investors a transparent, verified pipeline of high-potential ventures—fostering trust, growth, and impact.
+      {/* Info Section */}
+      <section className="w-full px-6 py-20 bg-slate-950/50 border-y border-white/5">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Mission */}
+            <div className="p-8 rounded-3xl bg-slate-900/50 border border-white/5 space-y-4">
+              <div className="flex items-center gap-3 text-blue-400 font-bold text-xs uppercase tracking-widest">
+                <Target className="w-4 h-4" /> Mission
+              </div>
+              <p className="text-slate-300 leading-relaxed">
+                Empowering Rwandan talent by democratizing access to capital and fostering a verified, transparent ecosystem for growth.
               </p>
             </div>
-            <div className="w-full rounded-2xl bg-slate-800 border border-slate-700 p-6 md:p-8 text-left">
-              <h3 className="text-white font-bold text-sm uppercase tracking-wider flex items-center gap-2 mb-3">
-                <Eye className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                Our Vision
-              </h3>
-              <p className="text-slate-300 text-base md:text-lg leading-relaxed">
-                A Rwanda where every viable business idea can find the right partners and funding, and where investors can confidently back verified entrepreneurs—driving job creation, innovation, and sustainable development.
-              </p>
-            </div>
-          </div>
 
-          {/* About: full width */}
-          <div className="w-full rounded-2xl bg-slate-800 border border-slate-700 p-6 md:p-8 text-left">
-            <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-3">About PitchBridge</h3>
-            <p className="text-slate-300 text-base md:text-lg leading-relaxed mb-4">
-              PitchBridge connects Rwandan entrepreneurs with investors to turn ideas into reality and build a thriving innovation ecosystem.
-            </p>
-            <p className="text-slate-300 text-base md:text-lg leading-relaxed">
-              We believe verified identity and documents build trust, direct connections lead to better deals, and Rwanda’s entrepreneurial talent deserves a dedicated platform to access capital and grow. You can read more on our{' '}
+            {/* Vision */}
+            <div className="p-8 rounded-3xl bg-slate-900/50 border border-white/5 space-y-4">
+              <div className="flex items-center gap-3 text-purple-400 font-bold text-xs uppercase tracking-widest">
+                <Eye className="w-4 h-4" /> Vision
+              </div>
+              <p className="text-slate-300 leading-relaxed">
+                To become the central pulse of East African innovation, where every viable idea meets the right strategic partner.
+              </p>
+            </div>
+
+            {/* About Quick-Link */}
+            <div className="p-8 rounded-3xl bg-blue-600/5 border border-blue-500/20 space-y-4">
+              <h3 className="text-white font-bold text-xs uppercase tracking-widest">Our Story</h3>
+              <p className="text-slate-300 leading-relaxed">
+                PitchBridge was built on the belief that talent is universal, but opportunity is not. We're changing that for Rwanda.
+              </p>
               <button
-                type="button"
                 onClick={() => navigate('/about')}
-                className="text-blue-400 hover:text-blue-300 font-medium underline underline-offset-2 transition-colors"
+                className="text-blue-400 text-sm font-bold flex items-center gap-2 hover:gap-3 transition-all"
               >
-                About page
+                Learn More <ArrowRight className="w-4 h-4" />
               </button>
-              .
-            </p>
+            </div>
           </div>
         </div>
       </section>

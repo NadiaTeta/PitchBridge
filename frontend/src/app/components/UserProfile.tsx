@@ -132,7 +132,7 @@ export function UserProfile() {
       );
       const projectResults = await Promise.all(projectPromises);
       const validProjects = projectResults
-        .filter(result => result !== null)
+        .filter(result => result !== null && result.data?.project)
         .map(result => result.data.project);
       setProjects(validProjects);
     } catch (error) {
@@ -143,7 +143,9 @@ export function UserProfile() {
   const fetchPortfolio = async () => {
     try {
       const { data } = await api.get('/users/portfolio');
-      const portfolioProjects = data.portfolio.map((inv: any) => inv.project);
+      const portfolioProjects = data.portfolio
+        .map((inv: any) => inv.project)
+        .filter(p => p);
       setProjects(portfolioProjects);
     } catch (error) {
       console.error('Error fetching portfolio:', handleApiError(error));

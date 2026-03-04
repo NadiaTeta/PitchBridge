@@ -294,11 +294,12 @@ Base path: `/api/v1` (configurable via `API_VERSION`).
 
 ---
 
-## 🚀 Deployment Plan
+## 🚀 Deployment
 
 **Phase 1: Frontend Hosting**
 
-The frontend is designed to be hosted on Vercel.
+The frontend is hosted on Netlify.
+[https://nukita.netlify.app/](https://nukita.netlify.app/)
 
 Automatic deployments are triggered via the main branch.
 
@@ -311,17 +312,16 @@ Video pitches are managed via Cloudinary. This ensures that high-resolution vide
 
 **Phase 3: Backend & Database**
 
-The backend (Node.js/Express) will be deployed on Render or Heroku, connected to a PostgreSQL database for secure management of investment data and user profiles.
+The backend (Node.js/Express) is deployed on Render.
+Live API Link: [https://pitchbridge.onrender.com/](https://pitchbridge.onrender.com/)
 
-**Phase 4: Domain & Security**
-
-Final deployment will involve a custom domain with SSL encryption (HTTPS) to ensure that all financial discussions and personal NID/RDB verification documents are handled securely.
+PitchBridge utilizes MongoDB Atlas as its primary database, providing a flexible, document-oriented schema that easily accommodates complex project data and user verification documents.
 
 ---
 
 ## 📹 Video demo link
 
-Video demo: [https://drive.google.com/file/d/1cQ0wKVBeQPxWm8F5QCoH5ot2aTN1aXK_/view?usp=sharing](https://drive.google.com/file/d/1cQ0wKVBeQPxWm8F5QCoH5ot2aTN1aXK_/view?usp=sharing)
+Video demo: [https://drive.google.com/file/d/1DekG29NpY8feJD8d_Wc_u1sWJfrYSOQJ/view?usp=sharing]
 
 ---
 

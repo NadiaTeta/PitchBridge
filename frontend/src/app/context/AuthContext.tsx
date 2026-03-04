@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode, use } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { UserRole } from '../data/userData';
 import { handleApiError } from '../utils/errorHandler';
@@ -33,6 +34,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();
@@ -127,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    navigate('/login');
   };
 
   const verifyEmail = async (code: string) => {
@@ -142,10 +145,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const uploadDocuments = async (formData: FormData) => {
-  const { data } = await api.post('/auth/upload-docs', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  });
-  return data;
+    const { data } = await api.post('/auth/upload-docs', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    if (data?.user) {
+      setUser({
+        ...data.user,
+        id: data.user._id || data.user.id
+      });
+    } else {
+      setUser(prev => (prev ? { ...prev, documentsUploaded: true } : prev));
+    }
+
+    return data;
   };
 
   const updateUser = (newData: Partial<User>) => {

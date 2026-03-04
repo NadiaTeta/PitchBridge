@@ -1000,6 +1000,60 @@ export function AdminDashboard() {
                 </button>
               </div>
             </div>
+
+            {user.documents && user.documents.length > 0 && (
+              <div className="mt-4 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">
+                  Submitted Documents
+                </p>
+                <div className="space-y-2">
+                  {user.documents.map((doc) => (
+                    <div
+                      key={doc._id}
+                      className="flex items-center justify-between bg-white rounded-lg px-3 py-2"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">
+                          {doc.type.toUpperCase()}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate max-w-xs">
+                          {doc.fileName}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-xs font-bold px-2 py-1 rounded ${
+                            doc.status === 'approved'
+                              ? 'bg-green-100 text-green-700'
+                              : doc.status === 'rejected'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}
+                        >
+                          {doc.status}
+                        </span>
+                        {doc.azureUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedDocument({
+                                url: doc.azureUrl,
+                                type: doc.type,
+                                fileName: doc.fileName
+                              });
+                              setShowDocumentModal(true);
+                            }}
+                            className="text-xs font-semibold text-blue-600 hover:underline"
+                          >
+                            View
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ))
       ) : (
@@ -1038,6 +1092,78 @@ export function AdminDashboard() {
               </button>
               <button
                 onClick={handleRejectProject}
+                className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors font-bold"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document preview modal */}
+      {showDocumentModal && selectedDocument && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+              <h3 className="font-bold text-slate-900 truncate pr-4">
+                {selectedDocument.fileName} ({selectedDocument.type.toUpperCase()})
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDocumentModal(false);
+                  setSelectedDocument(null);
+                }}
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 p-4 overflow-auto bg-slate-100 flex items-center justify-center">
+              {selectedDocument.url.toLowerCase().includes('.pdf') || selectedDocument.type === 'tin' ? (
+                <iframe
+                  src={selectedDocument.url}
+                  title={selectedDocument.fileName}
+                  className="w-full h-[70vh] rounded-xl border border-slate-200 bg-white"
+                />
+              ) : (
+                <img
+                  src={selectedDocument.url}
+                  alt={selectedDocument.fileName}
+                  className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-lg"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showUserRejectModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 className="text-xl font-black text-slate-900 mb-4">Reject User</h3>
+            <p className="text-slate-600 mb-4">Please provide a reason for rejection:</p>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Enter rejection reason..."
+              rows={4}
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+            />
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowUserRejectModal(false);
+                  setRejectionReason('');
+                  setSelectedUser(null);
+                }}
+                className="flex-1 px-6 py-3 border-2 border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectUser}
                 className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors font-bold"
               >
                 Reject

@@ -10,7 +10,6 @@ interface Project {
   name: string;
   description: string;
   location: string;
-  image: string;
   fundingGoal: number;
   raised: number;
   roi?: string;
@@ -49,23 +48,14 @@ export function ProjectCard({ project }: { project: Project }) {
       onClick={() => navigate(`/project/${projectId}`)}
       className="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col h-full"
     >
-      {/* Image Section */}
-      <div className="relative h-48 overflow-hidden flex-shrink-0">
-        <img 
-          src={project.image} 
-          alt={project.name} 
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-        />
-        
-        {/* Verification Badge */}
+      {/* Header: badge + location (no image) */}
+      <div className="relative px-4 pt-4 pb-3 bg-slate-100 flex-shrink-0 flex flex-wrap items-center justify-between gap-2">
         {project.verified?.nid && (
-          <div className="absolute top-4 left-4 px-3 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-lg">
+          <div className="px-3 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3" /> Verified
           </div>
         )}
-
-        {/* Location Tag */}
-        <div className="absolute bottom-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+        <div className="px-3 py-1 bg-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 border border-slate-200">
           <MapPin className="w-3 h-3 text-blue-600" />
           {project.location}
         </div>

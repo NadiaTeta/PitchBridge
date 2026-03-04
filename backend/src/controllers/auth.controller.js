@@ -2,6 +2,7 @@ const User = require('../models/User.model');
 const { ErrorResponse } = require('../middleware/error.middleware');
 const { generateToken } = require('../middleware/auth.middleware');
 const { sendEmail } = require('../utils/email');
+const { validateEmailForRegistration } = require('../utils/emailValidation');
 
 exports.register = async (req, res, next) => {
   try {
@@ -15,10 +16,19 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // Create user
+    // Validate email: format + no disposable/temporary addresses (must be real email)
+    const emailValidation = validateEmailForRegistration(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: emailValidation.message
+      });
+    }
+
+    // Create user with normalized email
     const user = await User.create({
       name,
-      email,
+      email: emailValidation.normalized,
       password,
       role
     });
@@ -27,7 +37,7 @@ exports.register = async (req, res, next) => {
     const verificationToken = user.getEmailVerificationToken();
     await user.save();
 
-    // Send verification email
+    // Send verification email to real inbox (SMTP must be configured in .env)
     try {
       await sendEmail({
         to: user.email,
@@ -40,6 +50,11 @@ exports.register = async (req, res, next) => {
       });
     } catch (error) {
       console.error('Error sending verification email:', error);
+      await User.findByIdAndDelete(user._id);
+      return res.status(503).json({
+        success: false,
+        message: 'We could not send the verification email to this address. Please check your email and try again, or contact support if the problem continues.'
+      });
     }
 
     // Create token
@@ -79,8 +94,9 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    // Check for user
-    const user = await User.findOne({ email }).select('+password');
+    // Check for user (email is stored lowercase in DB)
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
 
     if (!user) {
       return res.status(401).json({
@@ -167,8 +183,14 @@ exports.verifyEmail = async (req, res, next) => {
 exports.resendVerificationEmail = async (req, res, next) => {
   try {
     const { email } = req.body;
-
-    const user = await User.findOne({ email });
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(404).json({
@@ -235,6 +257,28 @@ exports.logout = async (req, res, next) => {
     success: true,
     message: 'Logged out successfully'
   });
+};
+
+// @desc    Delete current user account
+// @route   DELETE /api/v1/auth/me
+// @access  Private
+exports.deleteAccount = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    await User.findByIdAndDelete(req.user.id);
+    res.status(200).json({
+      success: true,
+      message: 'Account deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 // @desc    Forgot password
@@ -347,16 +391,54 @@ exports.uploadDocs = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No files uploaded' });
     }
 
-    // Update user in database to mark that they've uploaded docs
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { 
-        documentsUploaded: true,
-        // Optional: save the paths of the uploaded files
-        verificationDocs: req.files.map(f => f.path) 
-      },
-      { new: true }
-    );
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // documentTypes is sent by the frontend to map each uploaded file to a type
+    let documentTypes = [];
+    if (req.body?.documentTypes) {
+      try {
+        documentTypes = JSON.parse(req.body.documentTypes);
+      } catch (e) {
+        documentTypes = [];
+      }
+    }
+
+    const files = req.files;
+    if (!Array.isArray(documentTypes) || documentTypes.length !== files.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Document types mismatch. Please retry upload.'
+      });
+    }
+
+    const path = require('path');
+    const uploadsRoot = path.join(__dirname, '../../uploads');
+    const hostUrl = `${req.protocol}://${req.get('host')}`;
+
+    // Replace existing docs of same type with latest upload
+    const incomingTypes = new Set(documentTypes);
+    user.documents = (user.documents || []).filter((d) => !incomingTypes.has(d.type));
+
+    files.forEach((file, idx) => {
+      const type = documentTypes[idx];
+      const relative = path.relative(uploadsRoot, file.path).split(path.sep).join('/');
+      const urlPath = `/uploads/${relative}`;
+      const absoluteUrl = `${hostUrl}${urlPath}`;
+
+      user.documents.push({
+        type,
+        status: 'pending',
+        uploadDate: new Date(),
+        azureUrl: absoluteUrl,
+        fileName: file.originalname
+      });
+    });
+
+    user.documentsUploaded = true;
+    await user.save();
 
     res.status(200).json({
       success: true,

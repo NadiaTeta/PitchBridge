@@ -28,12 +28,14 @@ api.interceptors.request.use(
 // Handle responses with proper typing
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ success: boolean; error: string }>) => {
-    if (error.response?.status === 401) {
+  (error: AxiosError<{ success?: boolean; message?: string; error?: string }>) => {
+    // Only redirect to login on 401 for protected routes (not for failed login/register)
+    const isAuthAttempt = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/register');
+    if (error.response?.status === 401 && !isAuthAttempt) {
       localStorage.removeItem('token');
       window.location.href = '/';
     }
-    return Promise.reject(error.response?.data || error);
+    return Promise.reject(error);
   }
 );
 

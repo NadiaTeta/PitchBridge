@@ -1,15 +1,32 @@
 const nodemailer = require('nodemailer');
 
-// Create reusable transporter
+// Real SMTP: use Gmail, SendGrid, Outlook, or your provider. Set in .env (not Mailtrap).
+const port = parseInt(process.env.EMAIL_PORT, 10) || 587;
+const secure = port === 465;
+
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
-  }
+  port,
+  secure,
+  auth: process.env.EMAIL_USER && process.env.EMAIL_PASSWORD
+    ? { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASSWORD }
+    : undefined
 });
+
+function ensureEmailConfigured() {
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    throw new Error(
+      'Email is not configured. Set EMAIL_HOST, EMAIL_USER, and EMAIL_PASSWORD in .env for real delivery (e.g. Gmail, SendGrid).'
+    );
+  }
+  const host = (process.env.EMAIL_HOST || '').toLowerCase();
+  if (host.includes('mailtrap')) {
+    throw new Error(
+      'Mailtrap is not allowed. Update your .env to use real SMTP so verification emails go to users\' real inboxes. ' +
+      'Use Gmail (smtp.gmail.com + App Password), SendGrid, Outlook, or another provider. See backend/.env.example.'
+    );
+  }
+}
 
 // Email templates
 const templates = {
@@ -66,9 +83,10 @@ const templates = {
   })
 };
 
-// Send email function
+// Send email function (uses real SMTP – emails go to the recipient's actual inbox)
 exports.sendEmail = async ({ to, subject, template, context }) => {
   try {
+    ensureEmailConfigured();
     let emailContent;
     
     if (template && templates[template]) {

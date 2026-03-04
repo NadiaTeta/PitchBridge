@@ -1,24 +1,25 @@
-import { useState, useRef, useEffect, use } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Send, FileText, Search, MessageSquare, ArrowLeft, MoreVertical } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { initSocket, joinChat, sendMessage as socketSendMessage, onNewMessage, offNewMessage } from '../services/socket';
 import { handleApiError } from '../utils/errorHandler';
-import { on } from 'node:cluster';
 
 interface ChatPreview {
   _id: string;
-  project: {
+  project?: {
     _id: string;
     name: string;
     image?: string;
-  };
-  lastMessage: {
+  } | null;
+  investor?: { _id: string; name: string } | null;
+  entrepreneur?: { _id: string; name: string } | null;
+  lastMessage?: {
     text: string;
     date: Date;
   };
-  unreadCount: {
+  unreadCount?: {
     investor: number;
     entrepreneur: number;
   };
@@ -26,9 +27,10 @@ interface ChatPreview {
 
 interface Message {
   _id: string;
-  sender: string;
+  sender: string | { _id: string };
   text: string;
-  timestamp: Date;
+  timestamp?: Date;
+  createdAt?: Date;
 }
 
 interface ActiveChat {
@@ -41,7 +43,6 @@ interface ActiveChat {
 }
 
 export function Messages() {
-  console.log('MESSAGES COMPONENT HAS MOUNTED !!!');
   const { id } = useParams(); 
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -65,20 +66,26 @@ export function Messages() {
   useEffect(() => {
     if (id) {
       fetchActiveChat(id);
-      
-      // Initialize socket
-      const socket = initSocket();
+      initSocket();
       joinChat(id);
-      
       onNewMessage((data: any) => {
-        if (data.chatId === id) {
-          setMessages(prev => [...prev, data.message]);
+        if (data.chatId === id && data.message) {
+          const msg = data.message;
+          setMessages(prev => [...prev, {
+            _id: msg._id || `socket-${Date.now()}`,
+            sender: msg.sender?._id ?? msg.sender,
+            text: msg.text,
+            timestamp: msg.timestamp || msg.createdAt || new Date()
+          }]);
         }
+        fetchChats();
       });
-
       return () => {
         offNewMessage();
       };
+    } else {
+      setActiveChat(null);
+      setMessages([]);
     }
   }, [id]);
 
@@ -90,17 +97,14 @@ export function Messages() {
   }, [messages]);
 
   const fetchChats = async () => {
-    console.log('--- Fetching Chats Started ----');
     try {
       setLoading(true);
       const { data } = await api.get('/chat');
-      console.log('--- API Response Received ---', data.chats);
       setChats(data.chats || []);
     } catch (error) {
-      console.error('--- API error ---', handleApiError(error));
+      console.error('Messages fetch error:', handleApiError(error));
     } finally {
       setLoading(false);
-      console.log('--- Loading Set to False ---');
     }
   };
 
@@ -108,40 +112,32 @@ export function Messages() {
   const fetchActiveChat = async (chatId: string) => {
     try {
       const { data } = await api.get(`/chat/${chatId}`);
-      setActiveChat(data.chat);
-      setMessages(data.chat.messages || []);
-      
-      // Mark messages as read
+      const chat = data.chat;
+      if (!chat) return;
+      setActiveChat(chat);
+      // Backend uses createdAt; normalize for display
+      const msgs = (chat.messages || []).map((m: any) => ({
+        ...m,
+        sender: m.sender?._id ?? m.sender,
+        timestamp: m.createdAt || m.timestamp,
+        _id: m._id || String(m.createdAt) || Math.random().toString()
+      }));
+      setMessages(msgs);
       await api.put(`/chat/${chatId}/read`);
     } catch (error) {
       console.error('Error fetching chat:', handleApiError(error));
     }
   };
 
-  useEffect(() => {
-    if (id) {
-      fetchActiveChat(id);
-      joinChat(id);
-
-      onNewMessage((data: any) => {
-        if (data.chatId === id) {
-          setMessages(prev => [...prev, data.message]);
-        } 
-        fetchChats();
-      });
-    } else {
-      setActiveChat(null);
-      setMessages([]);
-    }
-  }, [id]);
-
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !id) return;
+    const textToSend = inputText.trim();
+    if (!textToSend || !id) return;
 
+    const tempId = Date.now().toString();
     const tempMessage: Message = {
-      _id: Date.now().toString(),
+      _id: tempId,
       sender: user?.id || '',
-      text: inputText,
+      text: textToSend,
       timestamp: new Date()
     };
 
@@ -149,28 +145,28 @@ export function Messages() {
     setInputText('');
 
     try {
-      await api.post(`/chat/${id}/message`, { text: inputText });
-      socketSendMessage(id, { 
-        sender: user?.id, 
-        text: inputText,
+      await api.post(`/chat/${id}/message`, { text: textToSend });
+      socketSendMessage(id, {
+        sender: user?.id,
+        text: textToSend,
         timestamp: new Date()
       });
     } catch (error) {
       console.error('Error sending message:', handleApiError(error));
-      setMessages(prev => prev.filter(m => m._id !== tempMessage._id));
-      setInputText(inputText);
+      setMessages(prev => prev.filter(m => m._id !== tempId));
+      setInputText(textToSend);
       alert('Failed to send message');
     }
   };
 
-  const filteredChats = chats.filter(chat => 
-    chat.project.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredChats = chats.filter(chat =>
+    (chat.project?.name ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getUnreadCount = (chat: ChatPreview) => {
-    return user?.role === 'investor' 
-      ? chat.unreadCount.investor 
-      : chat.unreadCount.entrepreneur;
+    const counts = chat.unreadCount;
+    if (!counts) return 0;
+    return user?.role === 'investor' ? (counts.investor ?? 0) : (counts.entrepreneur ?? 0);
   };
 
   if (loading) {
@@ -228,13 +224,25 @@ export function Messages() {
               <div className="flex flex-col items-center justify-center h-full p-6 text-center">
                 <MessageSquare className="w-16 h-16 text-slate-300 mb-4" />
                 <p className="text-slate-500 font-medium mb-2">No conversations yet</p>
-                <p className="text-sm text-slate-400">Connect with projects to start chatting</p>
+                <p className="text-sm text-slate-400">
+                  {user?.role === 'investor'
+                    ? 'Request to connect on a project to start chatting'
+                    : 'You’ll see chats here when investors ask to connect on your projects'}
+                </p>
               </div>
             ) : (
               filteredChats.map((chat) => {
                 const unread = getUnreadCount(chat);
                 const isActive = activeChat?._id === chat._id;
-                
+                const projectName = chat.project?.name ?? 'Chat';
+                const initial = projectName.charAt(0).toUpperCase();
+                // Investors see "Project – with [Entrepreneur]"; Entrepreneurs see "Project – from [Investor]"
+                const otherPartyName = user?.role === 'investor'
+                  ? chat.entrepreneur?.name
+                  : chat.investor?.name;
+                const subtitle = otherPartyName
+                  ? (user?.role === 'investor' ? `with ${otherPartyName}` : `from ${otherPartyName}`)
+                  : '';
                 return (
                   <button
                     key={chat._id}
@@ -246,12 +254,12 @@ export function Messages() {
                     }`}
                   >
                     <div className="w-12 h-12 rounded-2xl bg-blue-600 flex-shrink-0 flex items-center justify-center text-white font-black">
-                      {chat.project.name.charAt(0)}
+                      {initial}
                     </div>
                     <div className="text-left flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <p className="text-sm font-bold text-slate-900 truncate">
-                          {chat.project.name}
+                          {projectName}
                         </p>
                         {unread > 0 && (
                           <span className="ml-2 bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full flex-shrink-0">
@@ -259,6 +267,11 @@ export function Messages() {
                           </span>
                         )}
                       </div>
+                      {subtitle ? (
+                        <p className="text-[10px] text-slate-500 truncate font-medium uppercase tracking-wide">
+                          {subtitle}
+                        </p>
+                      ) : null}
                       <p className="text-[11px] text-slate-500 truncate">
                         {chat.lastMessage?.text || 'No messages yet'}
                       </p>
@@ -296,10 +309,10 @@ export function Messages() {
                   </button>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black">
-                      {activeChat.project.name.charAt(0)}
+                      {(activeChat.project?.name ?? 'C').charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="text-sm font-black text-slate-900">{activeChat.project.name}</h3>
+                      <h3 className="text-sm font-black text-slate-900">{activeChat.project?.name ?? 'Chat'}</h3>
                       <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 bg-green-500 rounded-full" />
                         <p className="text-[10px] text-slate-400 font-bold uppercase">Online</p>
@@ -326,30 +339,30 @@ export function Messages() {
                     </div>
                   </div>
                 ) : (
-                  messages.map((m) => (
-                    <div 
-                      key={m._id} 
-                      className={`flex ${m.sender === user?.id ? 'justify-end' : 'justify-start'}`}
+                  messages.map((m) => {
+                    const senderId = typeof m.sender === 'object' && m.sender !== null && '_id' in m.sender ? (m.sender as { _id: string })._id : String(m.sender);
+                    const isOwn = senderId === user?.id;
+                    const ts = m.timestamp || (m as any).createdAt;
+                    return (
+                    <div
+                      key={m._id}
+                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className={`max-w-[75%] flex flex-col ${
-                        m.sender === user?.id ? 'items-end' : 'items-start'
-                      }`}>
+                      <div className={`max-w-[75%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
                         <div className={`px-5 py-3 rounded-2xl text-sm ${
-                          m.sender === user?.id 
-                            ? 'bg-blue-600 text-white rounded-tr-none' 
+                          isOwn
+                            ? 'bg-blue-600 text-white rounded-tr-none'
                             : 'bg-white border border-slate-200 rounded-tl-none'
                         }`}>
                           {m.text}
                         </div>
                         <span className="text-[9px] text-slate-400 mt-1 px-2">
-                          {new Date(m.timestamp).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
+                          {ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                         </span>
                       </div>
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 

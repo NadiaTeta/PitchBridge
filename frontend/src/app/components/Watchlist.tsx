@@ -12,7 +12,6 @@ interface Project {
   name: string;
   description: string;
   location: string;
-  image: string;
   fundingGoal: number;
   currentFunding: number;
 }

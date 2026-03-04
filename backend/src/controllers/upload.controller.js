@@ -44,9 +44,13 @@
         });
       }
 
+      // Return a URL the frontend can use (server serves /uploads statically)
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const videoUrl = `${baseUrl}/uploads/videos/${req.file.filename}`;
+
       res.status(200).json({
         success: true,
-        videoUrl: req.file.path
+        videoUrl
       });
     } catch (error) {
       next(error);

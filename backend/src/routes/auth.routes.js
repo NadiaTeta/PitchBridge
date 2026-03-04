@@ -5,6 +5,7 @@ const {
   login,
   logout,
   getMe,
+  deleteAccount,
   verifyEmail,
   resendVerificationEmail,
   forgotPassword,
@@ -28,6 +29,7 @@ router.post('/upload-docs', protect, upload.array('document', 5), uploadDocs);
 // Protected routes
 router.get('/me', protect, getMe);
 router.post('/logout', protect, logout);
+router.delete('/me', protect, deleteAccount);
 router.put('/update-password', protect, updatePassword);
 
 module.exports = router;

@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OnboardingScreen } from './components/OnboardingScreen';
-import { RegisterLogin } from './components/RegisterLogin';
+import { Register } from './components/Register';
+import { Login } from './components/Login';
 import { EmailVerification } from './components/EmailVerification';
 import { DocumentUpload } from './components/DocumentUpload';
 import { WaitingApproval } from './components/WaitingApproval';
@@ -17,6 +18,9 @@ import { Messages } from './components/Messages';
 import { WatchlistPage } from './components/Watchlist';
 import { PortfolioPage } from './components/Portofolio';
 import { EntrepreneurProjectDetails } from './components/EntrepreneurProjectDetails';
+import { AboutPage } from './components/AboutPage';
+import { ContactPage } from './components/ContactPage';
+import { Settings } from './components/Settings';
 
 function AppLayout() {
   return (
@@ -41,7 +45,10 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<OnboardingScreen />} />
-      <Route path="/register" element={<RegisterLogin />} />
+      <Route path="/about" element={<AboutPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/verify-email" element={<EmailVerification />} />
       <Route path="/upload-documents" element={<DocumentUpload />} />
       <Route path="/waiting-approval" element={<WaitingApproval />} />
@@ -62,6 +69,7 @@ function AppRoutes() {
         <Route path="/messages/:id" element={<Messages />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/profile/:id/:viewType" element={<UserProfile />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
       
       {/* Admin */}

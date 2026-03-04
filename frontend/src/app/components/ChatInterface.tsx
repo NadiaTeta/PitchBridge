@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, use } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, CheckCircle2, AlertCircle, FileText, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -7,9 +7,10 @@ import { initSocket, joinChat, sendMessage as socketSend, onNewMessage } from '.
 
 interface Message {
   _id: string;
-  sender: string;
+  sender: string | { _id: string };
   text: string;
-  timestamp: Date;
+  timestamp?: Date;
+  createdAt?: Date;
 }
 
 interface Chat {
@@ -68,8 +69,16 @@ export function ChatInterface() {
   const fetchChat = async () => {
     try {
       const { data } = await api.get(`/chat/${id}`);
-      setChat(data.chat);
-      setMessages(data.chat.messages || []);
+      const chat = data.chat;
+      if (!chat) return;
+      setChat(chat);
+      const msgs = (chat.messages || []).map((m: any) => ({
+        ...m,
+        sender: m.sender?._id ?? m.sender,
+        timestamp: m.createdAt || m.timestamp,
+        _id: m._id || String(m.createdAt) || Math.random().toString()
+      }));
+      setMessages(msgs);
     } catch (error) {
       console.error('Error fetching chat:', error);
     } finally {
@@ -152,27 +161,34 @@ export function ChatInterface() {
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth">
-        {messages.map((message) => (
-          <div
-            key={message._id}
-            className={`flex ${message.sender === user?.id ? 'justify-end' : 'justify-start'}`}
-          >
-            <div className={`max-w-[85%] md:max-w-[60%] flex flex-col ${message.sender === user?.id ? 'items-end' : 'items-start'}`}>
-              <div
-                className={`px-5 py-3.5 rounded-[2rem] text-sm leading-relaxed shadow-sm ${
-                  message.sender === user?.id
-                    ? 'bg-blue-600 text-white rounded-tr-none'
-                    : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
-                }`}
-              >
-                {message.text}
+        {messages.map((message) => {
+          const senderId = typeof message.sender === 'object' && message.sender !== null && '_id' in message.sender
+            ? (message.sender as { _id: string })._id
+            : String(message.sender);
+          const isOwn = senderId === user?.id;
+          const ts = message.timestamp || (message as any).createdAt;
+          return (
+            <div
+              key={message._id}
+              className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+            >
+              <div className={`max-w-[85%] md:max-w-[60%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+                <div
+                  className={`px-5 py-3.5 rounded-[2rem] text-sm leading-relaxed shadow-sm ${
+                    isOwn
+                      ? 'bg-blue-600 text-white rounded-tr-none'
+                      : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
+                  }`}
+                >
+                  {message.text}
+                </div>
+                <span className="text-[10px] font-bold text-slate-400 mt-2 px-2 uppercase tracking-tighter">
+                  {ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                </span>
               </div>
-              <span className="text-[10px] font-bold text-slate-400 mt-2 px-2 uppercase tracking-tighter">
-                {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Terms Sheet Modal */}

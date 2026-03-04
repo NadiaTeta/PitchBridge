@@ -270,13 +270,13 @@ exports.approveUser = async (req, res, next) => {
     user.verified.tin = hasTIN;
     user.verified.rdb = hasRDB;
 
-    // Update verification level
+    // Update verification level (model enum is lowercase)
     if (hasNID && hasTIN && hasRDB) {
-      user.verificationLevel = 'Gold';
+      user.verificationLevel = 'gold';
     } else if (hasNID && hasTIN) {
-      user.verificationLevel = 'Silver';
+      user.verificationLevel = 'silver';
     } else if (hasNID) {
-      user.verificationLevel = 'Bronze';
+      user.verificationLevel = 'bronze';
     }
 
     await user.save();
@@ -373,11 +373,11 @@ exports.approveDocument = async (req, res, next) => {
     const hasRDB = user.documents.some(doc => doc.type === 'rdb' && doc.status === 'approved');
 
     if (hasNID && hasTIN && hasRDB) {
-      user.verificationLevel = 'Gold';
+      user.verificationLevel = 'gold';
     } else if (hasNID && hasTIN) {
-      user.verificationLevel = 'Silver';
+      user.verificationLevel = 'silver';
     } else if (hasNID) {
-      user.verificationLevel = 'Bronze';
+      user.verificationLevel = 'bronze';
     }
     
     await user.save();

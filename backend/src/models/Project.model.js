@@ -44,11 +44,7 @@ const projectSchema = new mongoose.Schema({
     maxlength: 500
   },
   
-  // Media
-  image: {
-    type: String,
-    default: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800'
-  },
+  // Media (image removed; video optional for pitch)
   video: {
     type: String,
     default: null

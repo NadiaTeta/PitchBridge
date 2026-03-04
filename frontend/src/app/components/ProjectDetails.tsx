@@ -73,15 +73,9 @@ export function ProjectDetails() {
         </button>
       </div>
 
-      {/* Hero Image Section */}
-      <div className="relative h-[35vh] md:h-[50vh] w-full overflow-hidden">
-        <img
-          src={project.image}
-          alt={project.name}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-        <div className="absolute bottom-10 md:bottom-12 left-0 w-full px-4 md:px-6">
+      {/* Hero Section (no image) */}
+      <div className="relative w-full bg-gradient-to-br from-slate-800 to-slate-900 pt-24 pb-10 md:pt-28 md:pb-12">
+        <div className="w-full px-4 md:px-6">
           <div className="max-w-5xl mx-auto">
             <div className="flex flex-wrap gap-2 mb-3">
                <span className="px-2.5 py-1 bg-blue-600 text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest rounded-lg">
@@ -91,6 +85,11 @@ export function ProjectDetails() {
             <h1 className="text-2xl md:text-5xl font-black text-white mb-2 md:mb-3 tracking-tight leading-tight">
               {project.name}
             </h1>
+            {project.entrepreneur && (
+              <p className="text-slate-200 text-sm md:text-base mb-2">
+                By <span className="font-semibold text-white">{project.entrepreneur.name}</span>
+              </p>
+            )}
             <div className="flex items-center gap-2 text-slate-200">
               <MapPin className="w-3.5 h-3.5 text-blue-400" />
               <span className="text-sm md:text-base font-medium">{project.location}</span>
@@ -113,17 +112,29 @@ export function ProjectDetails() {
                 {project.description}
               </p>
               
-              <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-slate-50 flex items-center gap-4">
-                 <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 rounded-xl md:rounded-2xl flex items-center justify-center text-blue-600 font-black text-sm md:text-base">
-                   {project.entrepreneur.name?.charAt(0) || 'U'}
-                 </div>
-                 <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Entrepreneur</p>
-                    <button onClick={() => navigate('/profile/user123/public')} className="text-sm md:text-base font-bold text-slate-900 hover:text-blue-600 transition-colors">
-                      {project.entrepreneur.name}
-                    </button>
-                 </div>
-              </div>
+              {project.entrepreneur && (
+                <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-slate-50">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Project owner</p>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 rounded-xl md:rounded-2xl flex items-center justify-center text-blue-600 font-black text-sm md:text-base">
+                      {project.entrepreneur.name?.charAt(0) || 'U'}
+                    </div>
+                    <div>
+                      <p className="text-sm md:text-base font-bold text-slate-900">
+                        {project.entrepreneur.name}
+                      </p>
+                      {(project.entrepreneur._id || project.entrepreneur.id) && (
+                        <button
+                          onClick={() => navigate(`/profile/${project.entrepreneur._id || project.entrepreneur.id}/public`)}
+                          className="text-xs md:text-sm font-semibold text-blue-600 hover:underline mt-1"
+                        >
+                          View profile
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ROI Card */}

@@ -1,11 +1,15 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Upload, Video, Info, CheckCircle2, ChevronDown } from 'lucide-react';
 import { rwandanDistricts } from '../data/mockData';
 import api from '../services/api';
 
 export function PitchCardCreator() {
   const navigate = useNavigate();
+  const locationHook = useLocation();
+  const searchParams = new URLSearchParams(locationHook.search);
+  const editId = searchParams.get('edit');
+  const isEditMode = !!editId;
   const [formData, setFormData] = useState({
     projectName: '',
     location: '',
@@ -14,25 +18,95 @@ export function PitchCardCreator() {
     description: '',
     category: '',
   });
-  const [videoUploaded, setVideoUploaded] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [videoFileName, setVideoFileName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProjectForEdit = async () => {
+      if (!editId) return;
+      try {
+        const { data } = await api.get(`/projects/${editId}`);
+        const project = data.project;
+        setFormData({
+          projectName: project.name || '',
+          location: project.location || '',
+          fundingGoal: project.fundingGoal ? String(project.fundingGoal) : '',
+          roi: project.roi || '',
+          description: project.description || '',
+          category: project.category || '',
+        });
+        if (project.video) {
+          setVideoUrl(project.video);
+          setVideoFileName(project.video.split('/').pop() || null);
+        }
+      } catch (error: any) {
+        console.error('Failed to load project for editing', error);
+        alert('Unable to load project for editing.');
+        navigate('/dashboard');
+      }
+    };
+
+    fetchProjectForEdit();
+  }, [editId, navigate]);
+
+  const handleVideoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      alert('Please select a video file (e.g. MP4).');
+      return;
+    }
+    const formDataVideo = new FormData();
+    formDataVideo.append('video', file);
+    setVideoUploading(true);
+    try {
+      const { data } = await api.post('/upload/video', formDataVideo, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (data.videoUrl) {
+        setVideoUrl(data.videoUrl);
+        setVideoFileName(file.name);
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Video upload failed.';
+      alert(msg);
+    } finally {
+      setVideoUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const clearVideo = () => {
+    setVideoUrl(null);
+    setVideoFileName(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     try {
-      await api.post('/projects', {
+      const payload: Record<string, unknown> = {
         name: formData.projectName,
         location: formData.location,
-        fundingGoal: parseInt(formData.fundingGoal),
+        fundingGoal: parseInt(formData.fundingGoal, 10),
         roi: formData.roi,
         description: formData.description,
         category: formData.category,
-      });
-    
-      alert('Pitch submitted for review!');
+      };
+      if (videoUrl) payload.video = videoUrl;
+
+      if (isEditMode && editId) {
+        await api.put(`/projects/${editId}`, payload);
+        alert('Pitch updated successfully!');
+      } else {
+        await api.post('/projects', payload);
+        alert('Pitch submitted for review!');
+      }
+
       navigate('/dashboard');
     } catch (error: any) {
-      alert(error.error || 'Failed to create project');
+      alert(error.response?.data?.message || error.error || 'Failed to create project');
     }
   };
 
@@ -191,21 +265,36 @@ export function PitchCardCreator() {
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
                 Video Pitch (30-60s)
               </label>
+              <input
+                type="file"
+                id="pitch-video-input"
+                accept="video/mp4,video/quicktime,video/webm"
+                className="hidden"
+                onChange={handleVideoFileChange}
+                disabled={videoUploading}
+              />
               <div className={`relative border-2 border-dashed rounded-[1.5rem] md:rounded-[2rem] p-8 md:p-10 text-center transition-all ${
-                videoUploaded ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-slate-50'
+                videoUrl ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-slate-50'
               }`}>
-                {!videoUploaded ? (
+                {!videoUrl ? (
                   <button
                     type="button"
-                    onClick={() => setVideoUploaded(true)}
-                    className="flex flex-col items-center gap-3 w-full group"
+                    onClick={() => document.getElementById('pitch-video-input')?.click()}
+                    disabled={videoUploading}
+                    className="flex flex-col items-center gap-3 w-full group disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <div className="w-12 h-12 md:w-16 md:h-16 bg-white rounded-2xl md:rounded-3xl flex items-center justify-center shadow-sm text-blue-600 group-active:scale-90 transition-transform">
-                      <Video className="w-6 h-6 md:w-8" />
+                      {videoUploading ? (
+                        <span className="text-xs font-bold">...</span>
+                      ) : (
+                        <Upload className="w-6 h-6 md:w-8" />
+                      )}
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900 text-sm md:text-base">Record/Upload Video</p>
-                      <p className="text-[10px] text-slate-400 mt-1 uppercase font-black">Max 50MB</p>
+                      <p className="font-bold text-slate-900 text-sm md:text-base">
+                        {videoUploading ? 'Uploading...' : 'Upload Video'}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1 uppercase font-black">MP4, WebM · Max 50MB</p>
                     </div>
                   </button>
                 ) : (
@@ -215,9 +304,12 @@ export function PitchCardCreator() {
                     </div>
                     <div>
                       <p className="font-bold text-blue-700 text-sm">Video Ready!</p>
-                      <button 
-                        type="button" 
-                        onClick={() => setVideoUploaded(false)}
+                      {videoFileName && (
+                        <p className="text-xs text-slate-500 mt-1 truncate max-w-full px-2">{videoFileName}</p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={clearVideo}
                         className="text-[9px] font-black uppercase text-slate-400 hover:text-red-500 mt-2 p-2"
                       >
                         Change Video

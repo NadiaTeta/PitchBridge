@@ -74,14 +74,6 @@ export function Dashboard() {
                 <p className="text-blue-100 text-xs md:text-sm mt-1">Launch your next vision</p>
               </button>
 
-              <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-100">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-50 rounded-xl md:rounded-2xl flex items-center justify-center mb-4">
-                  <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
-                </div>
-                <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">Avg. Progress</p>
-                <p className="text-2xl md:text-3xl font-black text-slate-900 mt-1">68%</p>
-              </div>
-
               <div className="bg-slate-900 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-sm text-white">
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center mb-4">
                   <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
@@ -110,13 +102,6 @@ export function Dashboard() {
                       onClick={() => navigate(`/entrepreneur/project/${project.id}`)}
                       className="group bg-white border border-slate-100 rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-5 hover:border-blue-200 cursor-pointer transition-all shadow-sm hover:shadow-md flex flex-col md:flex-row items-center gap-4 md:gap-6"
                     >
-                      <div className="w-full md:w-40 h-32 md:h-28 rounded-[1.2rem] md:rounded-[1.8rem] overflow-hidden shadow-inner flex-shrink-0">
-                        <img
-                          src={project.image}
-                          alt={project.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                      </div>
                       <div className="flex-1 w-full">
                         <div className="flex justify-between items-center mb-3 md:mb-4">
                           <h3 className="text-lg md:text-xl font-bold text-slate-900 truncate pr-2">{project.name}</h3>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, CheckCircle2, Award, Heart } from 'lucide-react';
-import { mockProjects, categories } from '../data/mockData';
+import { categories, rwandanDistricts } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 import { useProjects } from '../hooks/useProjects';
 import { useProjectActions } from '../hooks/useProjectActions';
@@ -12,11 +12,14 @@ export function InvestorDiscoveryFeed() {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const { projects, loading, error } = useProjects({
     category: selectedCategory === 'all' ? undefined : selectedCategory,
-    status: 'approved'
+    location: selectedLocation === 'all' ? undefined : selectedLocation,
+    // Backend uses status='active' for admin-approved projects
+    status: 'active'
   });
 
   const { toggleWatchlist } = useProjectActions();
@@ -114,6 +117,25 @@ export function InvestorDiscoveryFeed() {
               </button>
             ))}
           </div>
+
+          {/* Location filter */}
+          <div className="mt-3">
+            <label className="block text-[11px] font-semibold text-gray-500 mb-1">
+              Filter by location
+            </label>
+            <select
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+              className="w-full md:w-64 px-3 py-2 rounded-xl bg-gray-100 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+            >
+              <option value="all">All locations</option>
+              {rwandanDistricts.map((district) => (
+                <option key={district} value={district}>
+                  {district}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -138,15 +160,13 @@ export function InvestorDiscoveryFeed() {
                 <Heart className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
               </button>
 
-              <div className="relative h-48 md:h-52 overflow-hidden flex-shrink-0">
-                <img src={project.image} alt={project.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                <div className="absolute top-3 left-3">
-                  {project.verified.nid && (
-                    <div className="bg-blue-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-lg flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider">
-                      <CheckCircle2 className="w-3 h-3" /> Verified
-                    </div>
-                  )}
-                </div>
+              <div className="relative px-4 py-3 bg-slate-100 flex-shrink-0 flex items-center justify-between">
+                {project.verified?.nid && (
+                  <div className="bg-blue-600 text-white px-2.5 py-1 rounded-lg flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider">
+                    <CheckCircle2 className="w-3 h-3" /> Verified
+                  </div>
+                )}
+                <span className="text-xs font-medium text-slate-500">📍 {project.location}</span>
               </div>
 
               <div className="p-4 md:p-5 flex flex-col flex-1">

@@ -8,7 +8,6 @@ import {
   Award,
   FileText,
   Settings,
-  LogOut,
   Edit,
   Upload,
   CheckCircle2,
@@ -65,7 +64,7 @@ type ViewType = 'public' | 'private' | 'admin';
 export function UserProfile() {
   const { id, viewType = 'private' } = useParams<{ id?: string; viewType?: ViewType }>();
   const navigate = useNavigate();
-  const { user: currentUser, logout } = useAuth();
+  const { user: currentUser } = useAuth();
   
   const isOwnProfile = !id || id === currentUser?.id;
   const view: ViewType = (viewType as ViewType) || (isOwnProfile ? 'private' : 'public');
@@ -279,14 +278,6 @@ export function UserProfile() {
               </button>
             </>
           )}
-          {isOwnProfile && (
-            <button 
-              onClick={logout} 
-              className="p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl border border-white/20 text-white"
-            >
-              <LogOut className="w-6 h-6" />
-            </button>
-          )}
         </div>
 
         {/* Profile Identity Overlay */}
@@ -443,17 +434,9 @@ export function UserProfile() {
                     className="group p-6 border border-slate-100 rounded-[1.8rem] hover:border-blue-200 hover:bg-blue-50/20 transition-all cursor-pointer flex items-center justify-between"
                   >
                     <div className="flex items-center gap-4">
-                      {project.image ? (
-                        <img 
-                          src={project.image} 
-                          alt={project.name}
-                          className="w-12 h-12 rounded-2xl object-cover"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center font-bold text-blue-600">
-                          {project.name.charAt(0)}
-                        </div>
-                      )}
+                      <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center font-bold text-blue-600 flex-shrink-0">
+                        {project.name.charAt(0)}
+                      </div>
                       <div>
                         <h4 className="font-bold text-slate-900 text-lg">{project.name}</h4>
                         <p className="text-sm text-slate-500">{formatCurrency(project.raised)} raised</p>

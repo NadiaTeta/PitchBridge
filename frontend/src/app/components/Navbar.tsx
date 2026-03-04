@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Plus, MessageSquare, Briefcase, Heart, Search, User, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
 
 export function Navbar() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -65,7 +64,7 @@ export function Navbar() {
             <NavItem to="/messages" icon={MessageSquare} label="Messages" />
             <NavItem to="/profile" icon={User} label="Profile" />
             <button 
-              onClick={() => { logout(); navigate('/'); }}
+              onClick={logout}
               className="p-2 text-slate-400 hover:text-red-500 transition-colors ml-2"
             >
               <LogOut className="w-5 h-5" />
@@ -103,7 +102,7 @@ export function Navbar() {
             <NavItem to="/profile" icon={User} label="My Profile" />
             
             <button 
-              onClick={() => { logout(); navigate('/'); }}
+              onClick={logout}
               className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-all font-bold mt-4"
             >
               <LogOut className="w-5 h-5" />

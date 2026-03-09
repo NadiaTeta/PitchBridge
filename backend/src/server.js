@@ -32,7 +32,7 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: ["http://localhost:5173", "https://nukita.netlify.app"],
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -45,22 +45,28 @@ app.set('io', io);
 // 1. CORS - Must be very early
 const allowedOrigins = [
   'http://localhost:5173',          // Local development
-  'https://nukita.netlify.app/'       // Production frontend
+  'https://nukita.netlify.app'       // Production frontend
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps or Postman)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("Blocked by CORS:", origin); // Helps you debug in Render logs
+      callback(new Error('Not allowed by CORS'));
     }
-    return callback(null, true);
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Pre-flight support for all routes
+app.options('*', cors());
 
 // 2. Helmet - Relaxed for development to avoid blocking local resources/favicons
 app.use(helmet({

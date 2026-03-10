@@ -1,42 +1,15 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// 1. Configure Transporter with Production Security for Render/Cloud environments
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // true for port 465, false for 587
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD, 
-  },
-  // CRITICAL: This block prevents the 503 Service Unavailable error on Render
-  tls: {
-    rejectUnauthorized: false,
-    ciphers: 'SSLv3'
-  },
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 10000, // 10 seconds
-  socketTimeout: 10000 // 10 seconds
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// 2. Safety Check for Environment Variables
+// 1. Safety Check for Environment Variables
 function ensureEmailConfigured() {
-  const { EMAIL_HOST, EMAIL_USER, EMAIL_PASSWORD } = process.env;
-  
-  if (!EMAIL_HOST || !EMAIL_USER || !EMAIL_PASSWORD) {
-    throw new Error(
-      'Email credentials missing. Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASSWORD in Render Environment.'
-    );
-  }
-
-  if (EMAIL_HOST.toLowerCase().includes('mailtrap')) {
-    throw new Error(
-      'Mailtrap is not allowed for production. Use a real SMTP provider like Gmail or SendGrid.'
-    );
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('Email credentials missing. Please set RESEND_API_KEY in Render Environment.');
   }
 }
 
-// 3. Professional Email Templates
+// 2. Professional Email Templates
 const templates = {
   emailVerification: (name, verificationCode) => ({
     subject: 'PitchBridge - Verify Your Email',
@@ -53,7 +26,7 @@ const templates = {
       </div>
     `
   }),
-  
+
   passwordReset: (name, resetToken) => ({
     subject: 'PitchBridge - Password Reset Request',
     html: `
@@ -63,7 +36,7 @@ const templates = {
       <p>This token will expire in 30 minutes.</p>
     `
   }),
-  
+
   projectApproved: (name, projectName) => ({
     subject: 'PitchBridge - Your Project Has Been Approved!',
     html: `
@@ -71,7 +44,7 @@ const templates = {
       <p>Your project "<strong>${projectName}</strong>" has been approved and is now live on PitchBridge.</p>
     `
   }),
-  
+
   projectRejected: (name, projectName, reason) => ({
     subject: 'PitchBridge - Project Status Update',
     html: `
@@ -80,7 +53,7 @@ const templates = {
       <p><strong>Reason:</strong> ${reason}</p>
     `
   }),
-  
+
   newInvestment: (entrepreneurName, investorName, projectName, amount) => ({
     subject: 'PitchBridge - New Investment Interest',
     html: `
@@ -91,36 +64,33 @@ const templates = {
   })
 };
 
-// 4. Main Exported Send Function
+// 3. Main Exported Send Function
 exports.sendEmail = async ({ to, subject, template, context }) => {
   try {
     ensureEmailConfigured();
-    
-    // Optional: Test connection to SMTP server
-    await transporter.verify();
 
     let emailContent;
     if (template && templates[template]) {
-      // Pass context values to the template function
       emailContent = templates[template](...Object.values(context));
     } else {
       emailContent = { subject, html: context.html || context.text || '' };
     }
-    
-    const mailOptions = {
-      // Matches the authenticated user to avoid 'unauthorized sender' flags
-      from: `"PitchBridge" <${process.env.EMAIL_USER}>`, 
+
+    const { data, error } = await resend.emails.send({
+      from: 'PitchBridge <onboarding@resend.dev>', // Replace with your domain once verified
       to,
       subject: emailContent.subject,
       html: emailContent.html
-    };
-    
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Email sent successfully: ${info.messageId}`);
-    return info;
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    console.log(`✅ Email sent successfully: ${data.id}`);
+    return data;
   } catch (error) {
-    console.error('❌ SMTP Error:', error.message);
-    // Rethrow so the Auth Controller can send the 503/500 response
+    console.error('❌ Email Error:', error.message);
     throw error;
   }
 };

@@ -1,37 +1,48 @@
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// 1. Define where to store the images temporarily
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // This goes up from src/middleware to backend/uploads
-    const uploadPath = path.join(__dirname, '../../uploads');
-    
-    // Safety check: Create folder if it somehow disappeared
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
+// 1. Configure Cloudinary with your .env variables
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// 2. Set up the Cloudinary Storage engine
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'pitchbridge_uploads', 
+    resource_type: 'auto', // Automatically detect file type (image/video)
+    allowed_formats: ['jpg', 'png', 'jpeg', 'pdf', 'mp4', 'mov', 'docx'], // Allowed file types
+    // This makes the filename unique automatically
+    public_id: (req, file) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      return 'pb-' + uniqueSuffix;
     }
-    
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    // Create a professional unique name
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
-// 2. Filter to only allow images
+// 3. Filter to only allow images (and PDFs if needed for NIDs)
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
+  const allowedTypes = [
+    'image/jpeg', 
+    'video/', 
+    'application/pdf', 
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ];
+
+  const isAllowed = allowedTypes.some(type => file.mimetype.startsWith(type)); 
+  
+  if (isAllowed) {
     cb(null, true);
   } else {
-    cb(new Error('Not an image! Please upload only images.'), false);
+    cb(new Error('File type not supported! Please upload an image, video, or document.'), false);
   }
 };
 
-// 3. Initialize Multer
+// 4. Initialize Multer with Cloudinary Storage
 const upload = multer({
   storage: storage,
   limits: {

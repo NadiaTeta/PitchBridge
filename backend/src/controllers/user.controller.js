@@ -2,9 +2,7 @@ const User = require('../models/User.model');
 const Project = require('../models/Project.model');
 const Investment = require('../models/Investment.model');
 
-// @desc    Get user profile
-// @route   GET /api/v1/users/profile/:id?
-// @access  Private
+
 exports.getProfile = async (req, res, next) => {
   try {
     const userId = req.params.id || req.user.id;
@@ -41,9 +39,6 @@ exports.getProfile = async (req, res, next) => {
   }
 };
 
-// @desc    Update user profile
-// @route   PUT /api/v1/users/profile
-// @access  Private
 exports.updateProfile = async (req, res, next) => {
   try {
     const fieldsToUpdate = {
@@ -74,23 +69,16 @@ exports.updateProfile = async (req, res, next) => {
   }
 };
 
-// @desc    Upload profile picture
-// @route   POST /api/v1/users/profile-picture
-// @access  Private
 exports.uploadProfilePicture = async (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please upload an image'
-      });
-    }
+    if (!req.file) return next(new Error('No file uploaded'));
+    
 
-    const relativePath = '/uploads/' + req.file.filename;
+    const imageUrl = req.file.path; // Cloudinary returns the full URL
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { profilePicture: relativePath },
+      { profilePicture: imageUrl },
       { new: true }
     ).select('-password');
 
@@ -103,9 +91,6 @@ exports.uploadProfilePicture = async (req, res, next) => {
   }
 };
 
-// @desc    Add project to watchlist
-// @route   POST /api/v1/users/watchlist/:projectId
-// @access  Private (Investor)
 exports.addToWatchlist = async (req, res, next) => {
   try {
     const project = await Project.findById(req.params.projectId);
@@ -144,9 +129,6 @@ exports.addToWatchlist = async (req, res, next) => {
   }
 };
 
-// @desc    Remove project from watchlist
-// @route   DELETE /api/v1/users/watchlist/:projectId
-// @access  Private (Investor)
 exports.removeFromWatchlist = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
@@ -173,9 +155,6 @@ exports.removeFromWatchlist = async (req, res, next) => {
   }
 };
 
-// @desc    Get user's watchlist
-// @route   GET /api/v1/users/watchlist
-// @access  Private
 exports.getWatchlist = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).populate({
@@ -196,9 +175,7 @@ exports.getWatchlist = async (req, res, next) => {
   }
 };
 
-// @desc    Get user's portfolio (investments)
-// @route   GET /api/v1/users/portfolio
-// @access  Private
+
 exports.getPortfolio = async (req, res, next) => {
   try {
     const investments = await Investment.find({ 
@@ -222,7 +199,7 @@ exports.getPortfolio = async (req, res, next) => {
   }
 };
 
-// backend/controllers/investment.controller.js (or user.controller.js)
+
 
 exports.addProjectToPortfolio = async (req, res, next) => {
   try {

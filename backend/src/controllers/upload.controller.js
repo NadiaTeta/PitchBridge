@@ -11,11 +11,13 @@
       const { type } = req.body; // nid, tin, rdb, selfie
 
       const user = await User.findById(req.user.id);
+
+      const documentUrl = req.file.path; 
       
       user.documents.push({
         type,
         uploadDate: Date.now(),
-        azureUrl: req.file.path,
+        cloudinaryUrl: documentUrl,
         fileName: req.file.filename,
         status: 'pending'
       });
@@ -32,9 +34,7 @@
     }
   },
 
-  // @desc    Upload video
-  // @route   POST /api/v1/upload/video
-  // @access  Private
+ 
   exports.uploadVideo = async (req, res, next) => {
     try {
       if (!req.file) {
@@ -44,9 +44,7 @@
         });
       }
 
-      // Return a URL the frontend can use (server serves /uploads statically)
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      const videoUrl = `${baseUrl}/uploads/videos/${req.file.filename}`;
+      const videoUrl = req.file.path; // Cloudinary returns the full URL
 
       res.status(200).json({
         success: true,
@@ -57,9 +55,7 @@
     }
   },
 
-  // @desc    Upload image
-  // @route   POST /api/v1/upload/image
-  // @access  Private
+
   exports.uploadImage = async (req, res, next) => {
     try {
       if (!req.file) {
@@ -68,6 +64,8 @@
           message: 'Please upload an image'
         });
       }
+
+      const imageUrl = req.file.path; // Cloudinary returns the full URL
 
       res.status(200).json({
         success: true,
@@ -78,9 +76,7 @@
     }
   },
 
-  // @desc    Delete file
-  // @route   DELETE /api/v1/upload/:fileId
-  // @access  Private
+
   exports.deleteFile = async (req, res, next) => {
     try {
       // Implementation depends on storage solution (local/Azure)

@@ -77,7 +77,7 @@ exports.sendEmail = async ({ to, subject, template, context }) => {
     }
 
     const { data, error } = await resend.emails.send({
-      from: 'PitchBridge <onboarding@resend.dev>', // Replace with your domain once verified
+      from: 'PitchBridge <noreply@pitchbridge.live>', // Replace with your domain once verified
       to,
       subject: emailContent.subject,
       html: emailContent.html

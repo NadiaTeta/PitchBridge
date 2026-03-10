@@ -132,7 +132,7 @@ export function UserProfile() {
       );
       const projectResults = await Promise.all(projectPromises);
       const validProjects = projectResults
-        .filter(result => result !== null && result.data?.project)
+        .filter((result): result is Exclude<typeof result, null> => result !== null && result.data?.project)
         .map(result => result.data.project);
       setProjects(validProjects);
     } catch (error) {
@@ -145,7 +145,7 @@ export function UserProfile() {
       const { data } = await api.get('/users/portfolio');
       const portfolioProjects = data.portfolio
         .map((inv: any) => inv.project)
-        .filter(p => p);
+        .filter((p: any) => p);
       setProjects(portfolioProjects);
     } catch (error) {
       console.error('Error fetching portfolio:', handleApiError(error));
@@ -290,7 +290,7 @@ export function UserProfile() {
             <div className="w-40 h-40 bg-white rounded-[2.5rem] p-1.5 shadow-2xl">
               {user.profilePicture ? (
                 <img 
-                  src={`http://localhost:5000${user.profilePicture}`}
+                  src={user.profilePicture}
                   alt={user.name}
                   className="w-full h-full rounded-[2.2rem] object-cover"
                   onError={(e) => {

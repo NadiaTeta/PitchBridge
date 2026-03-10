@@ -2,19 +2,21 @@ const nodemailer = require('nodemailer');
 
 // 1. Configure Transporter with Production Security for Render/Cloud environments
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT, 10) || 587,
-  secure: process.env.EMAIL_PORT === '465', // true for port 465, false for 587
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // true for port 465, false for 587
   auth: {
     user: process.env.EMAIL_USER,
-    // Note: This MUST be the 16-character Google App Password (no spaces)
     pass: process.env.EMAIL_PASSWORD, 
   },
   // CRITICAL: This block prevents the 503 Service Unavailable error on Render
   tls: {
     rejectUnauthorized: false,
     ciphers: 'SSLv3'
-  }
+  },
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000, // 10 seconds
+  socketTimeout: 10000 // 10 seconds
 });
 
 // 2. Safety Check for Environment Variables

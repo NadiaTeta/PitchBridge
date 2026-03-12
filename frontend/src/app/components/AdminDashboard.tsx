@@ -22,7 +22,8 @@ import {
   X,
   Shield,
   ChevronRight,
-  MapPin
+  MapPin,
+  Menu
 } from 'lucide-react';
 import api from '../services/api';
 import { handleApiError } from '../utils/errorHandler';
@@ -123,6 +124,7 @@ export function AdminDashboard() {
   const [showUserRejectModal, setShowUserRejectModal] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
@@ -358,92 +360,117 @@ export function AdminDashboard() {
     );
   }
 
+  const NavItem = ({ view, icon: Icon, label, badge }: { view: typeof activeView; icon: React.ComponentType<{ className?: string }>; label: string; badge?: number }) => (
+    <button
+      onClick={() => { setActiveView(view); setSidebarOpen(false); }}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left ${
+        activeView === view ? 'bg-blue-600 text-white' : 'text-slate-300 hover:text-white hover:bg-white/10'
+      }`}
+    >
+      <Icon className="w-5 h-5 shrink-0" />
+      <span className="font-bold text-sm flex-1">{label}</span>
+      {badge !== undefined && badge > 0 && (
+        <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{badge}</span>
+      )}
+    </button>
+  );
+
+  const sidebarContent = (
+    <>
+      {/* Brand */}
+      <div className="flex items-center gap-2.5 px-4 py-5">
+        <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white shrink-0">P</div>
+        <div>
+          <span className="text-lg font-black tracking-tighter text-white">PitchBridge</span>
+          <p className="text-xs text-slate-400 font-medium">Admin Portal</p>
+        </div>
+      </div>
+
+      {/* Nav links */}
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <NavItem view="overview" icon={BarChart3} label="Overview" />
+        <NavItem view="id-verification" icon={Shield} label="ID Verification" badge={stats?.pendingUsers} />
+        <NavItem view="verifications" icon={Clock} label="Projects" badge={stats?.pendingVerifications} />
+        <NavItem view="users" icon={Users} label="Users" />
+      </nav>
+
+      {/* Back to site */}
+      <div className="p-3 border-t border-white/10">
+        <button
+          onClick={() => navigate('/')}
+          className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-all font-bold"
+        >
+          <ArrowLeft className="w-5 h-5 shrink-0" />
+          <span className="text-sm">Back to Site</span>
+        </button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/')}
-                className="p-2 hover:bg-white/10 rounded-xl transition-colors"
-              >
-                <ArrowLeft className="w-6 h-6" />
+    <div className="min-h-screen bg-slate-50 flex">
+
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:w-64 md:z-40 bg-slate-900 text-white border-r border-white/10">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile top bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-slate-900 border-b border-white/10 flex items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-black text-white">P</div>
+          <span className="text-base font-black tracking-tighter text-white">Admin</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg">
+            <ShieldCheck className="w-4 h-4 text-green-400" />
+            <span className="text-white font-bold text-xs">Administrator</span>
+          </div>
+          <button onClick={() => setSidebarOpen(true)} className="p-2 text-slate-300 hover:text-white rounded-lg">
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile overlay sidebar */}
+      {sidebarOpen && (
+        <>
+          <div className="md:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setSidebarOpen(false)} />
+          <aside className="md:hidden fixed inset-y-0 left-0 w-72 max-w-[85vw] z-50 flex flex-col bg-slate-900 text-white border-r border-white/10 shadow-xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <span className="font-bold text-white">Menu</span>
+              <button onClick={() => setSidebarOpen(false)} className="p-2 text-slate-300 hover:text-white rounded-lg">
+                <X className="w-5 h-5" />
               </button>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Admin Dashboard</h1>
-                <p className="text-blue-200 text-sm mt-1">PitchBridge Management Portal</p>
-              </div>
             </div>
-            <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl backdrop-blur-sm">
+            <div className="flex-1 overflow-y-auto flex flex-col pt-2">{sidebarContent}</div>
+          </aside>
+        </>
+      )}
+
+      {/* Main content area */}
+      <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
+        {/* Top header bar */}
+        <div className="bg-slate-900 border-b border-white/10 text-white px-4 sm:px-6 lg:px-8 py-4 mt-14 md:mt-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight">
+                {activeView === 'overview' && 'Platform Overview'}
+                {activeView === 'id-verification' && 'ID Verification'}
+                {activeView === 'verifications' && 'Project Reviews'}
+                {activeView === 'users' && 'Manage Users'}
+              </h1>
+              <p className="text-slate-400 text-sm mt-0.5">PitchBridge Management Portal</p>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl">
               <ShieldCheck className="w-5 h-5 text-green-400" />
               <span className="font-bold text-sm">Administrator</span>
             </div>
           </div>
-
-          {/* Navigation Tabs */}
-          <div className="flex gap-2 mt-6 overflow-x-auto pb-2">
-            <button
-              onClick={() => setActiveView('overview')}
-              className={`px-6 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all flex items-center gap-2 ${
-                activeView === 'overview'
-                  ? 'bg-white text-blue-900 shadow-lg'
-                  : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveView('id-verification')}
-              className={`px-6 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all flex items-center gap-2 ${
-                activeView === 'id-verification'
-                  ? 'bg-white text-blue-900 shadow-lg'
-                  : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
-            >
-              <Shield className="w-4 h-4" />
-              ID Verification
-              {stats && stats.pendingUsers && stats.pendingUsers > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                  {stats.pendingUsers}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveView('verifications')}
-              className={`px-6 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all flex items-center gap-2 ${
-                activeView === 'verifications'
-                  ? 'bg-white text-blue-900 shadow-lg'
-                  : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
-            >
-              <Clock className="w-4 h-4" />
-              Projects
-              {stats && stats.pendingVerifications > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                  {stats.pendingVerifications}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveView('users')}
-              className={`px-6 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all flex items-center gap-2 ${
-                activeView === 'users'
-                  ? 'bg-white text-blue-900 shadow-lg'
-                  : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              Users
-            </button>
-          </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Page content */}
+        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
         {/* Overview View */}
         {activeView === 'overview' && stats && (
           <div className="space-y-6">
@@ -880,9 +907,9 @@ export function AdminDashboard() {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
-                              {user.emailVerified && <CheckCircle className="w-4 h-4 text-green-500" title="Email Verified" />}
-                              {user.documentsUploaded && <FileText className="w-4 h-4 text-blue-500" title="Documents Uploaded" />}
-                              {user.accountApproved && <ShieldCheck className="w-4 h-4 text-purple-500" title="Account Approved" />}
+                              {user.emailVerified && <span title="Email Verified"><CheckCircle className="w-4 h-4 text-green-500" /></span>}
+                              {user.documentsUploaded && <span title="Documents Uploaded"><FileText className="w-4 h-4 text-blue-500" /></span>}
+                              {user.accountApproved && <span title="Account Approved"><ShieldCheck className="w-4 h-4 text-purple-500" /></span>}
                               {!user.emailVerified && !user.documentsUploaded && !user.accountApproved && (
                                 <span className="text-xs text-slate-400">None</span>
                               )}
@@ -1065,6 +1092,7 @@ export function AdminDashboard() {
     </div>
   </div>
 )}
+        </div>
       </div>
 
       {/* Modals */}

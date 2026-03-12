@@ -17,71 +17,82 @@ export function Login() {
     setLoading(true);
     try {
       const user = await login(formData.email, formData.password);
-      if (user && user.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      if (user && user.role === 'admin') navigate('/admin/dashboard');
+      else navigate('/dashboard');
     } catch (err: unknown) {
-      const message = handleApiError(err);
-      alert(message || 'An error occurred. Please try again.');
+      alert(handleApiError(err) || 'An error occurred.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <div className="p-4">
-        <div className="flex items-center gap-3 max-w-md mx-auto">
-          <button type="button" onClick={() => navigate('/')} className="p-2 hover:bg-slate-800 rounded-lg text-white">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-xl font-semibold text-white">Login</h1>
+    <div className="min-h-screen flex flex-col md:flex-row bg-white">
+      {/* Left Side: Centered Branding */}
+      <div className="hidden md:flex md:w-1/2 bg-slate-950 relative overflow-hidden flex-col justify-center items-center p-12">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#1e293b_0%,#020617_100%)] opacity-70" />
+        <div className="relative z-10 text-center max-w-md">
+          <div className="flex flex-col items-center gap-4 mb-8">
+            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-bold text-3xl shadow-2xl shadow-blue-500/20">P</div>
+            <span className="text-white font-bold text-2xl tracking-tight">PitchBridge</span>
+          </div>
+          <h2 className="text-4xl lg:text-5xl font-extrabold text-white leading-tight">
+            Connecting Rwandan Innovation to Capital.
+          </h2>
+          <p className="mt-6 text-slate-400 text-lg">
+            Welcome back. Log in to manage your active pitches and connect with the ecosystem.
+          </p>
+        </div>
+        <div className="absolute bottom-12 text-slate-600 text-xs font-medium uppercase tracking-widest">
+          Secured by PitchBridge Rwanda
         </div>
       </div>
 
-      <div className="p-6 max-w-md mx-auto">
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 mb-6">
-          <div className="text-center mb-6">
-            <h2 className="text-xl font-semibold text-white mb-2">Welcome Back</h2>
-            <p className="text-slate-400 text-sm">Login to your account</p>
+      {/* Right Side: Form */}
+      <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
+        <div className="w-full max-w-md">
+          <button onClick={() => navigate('/')} className="mb-8 p-2 -ml-2 hover:bg-slate-50 rounded-full transition-colors">
+            <ArrowLeft className="w-5 h-5 text-slate-600" />
+          </button>
+          
+          <div className="mb-10 text-center md:text-left">
+            <h3 className="text-3xl font-bold text-slate-900">Sign In</h3>
+            <p className="text-slate-500 mt-2">Access your entrepreneur or investor dashboard.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm mb-2 text-slate-300">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700 ml-1">Email Address</label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="Enter your email"
-                  className="w-full pl-10 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="name@email.com"
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
                   required
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm mb-2 text-slate-300">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700 ml-1">Password</label>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Enter your password"
-                  className="w-full pl-10 pr-12 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-12 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
@@ -89,19 +100,17 @@ export function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-xl transition-colors font-semibold"
+              className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 text-white rounded-2xl font-bold text-lg transition-all shadow-xl shadow-blue-200 active:scale-[0.98] mt-4"
             >
-              {loading ? 'Please wait...' : 'Login'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
-        </div>
 
-        <p className="text-center text-slate-400 text-sm">
-          Don&apos;t have an account?{' '}
-          <Link to="/" className="text-blue-400 hover:text-blue-300 hover:underline font-medium">
-            Go to home to register
-          </Link>
-        </p>
+          <p className="mt-8 text-center text-slate-600 font-medium">
+            Don't have an account?{' '}
+            <Link to="/" className="text-blue-600 font-bold hover:underline">Register here</Link>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -1,55 +1,50 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Upload, CheckCircle2, FileText } from 'lucide-react';
+import { Camera, Upload, CheckCircle2, ShieldAlert, ArrowRight, X, RotateCcw, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export function DocumentUpload() {
   const navigate = useNavigate();
   const { user, uploadDocuments } = useAuth();
-  const [files, setFiles] = useState<{ [key: string]: File | null }>({
-    selfie: null,
-    nida: null,
-    tin: null,
-  });
+  
+  // State for files and previews
+  const [files, setFiles] = useState<{ [key: string]: File | null }>({ selfie: null, nida: null });
+  const [previews, setPreviews] = useState<{ [key: string]: string | null }>({ selfie: null, nida: null });
+  const [isUploading, setIsUploading] = useState(false);
+  
+  // Camera & Modal States
   const [showCamera, setShowCamera] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [showSelfiePreview, setShowSelfiePreview] = useState(false);
-  const [selfiePreviewUrl, setSelfiePreviewUrl] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const pendingSelfieFileRef = useRef<File | null>(null);
 
-  const isEntrepreneur = user?.role === 'entrepreneur';
-  const requiredDocs = isEntrepreneur
-    ? ['selfie', 'nida', 'tin (optional)']
-    : ['selfie', 'nida'];
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
-  if (e.target.files && e.target.files[0]) {
-    setFiles({ ...files, [docType]: e.target.files[0] });
-  }
-};
-
-  const canSubmit = files.selfie && files.nida;
+  // Memory cleanup
+  useEffect(() => {
+    return () => {
+      Object.values(previews).forEach(url => { if (url) URL.revokeObjectURL(url); });
+      stopCamera();
+    };
+  }, []);
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
     }
   };
 
   const startCamera = async () => {
     setCameraError(null);
     setShowCamera(true);
+    // Logic to clear old selfie if starting fresh
+    setFiles(prev => ({ ...prev, selfie: null }));
+    setPreviews(prev => ({ ...prev, selfie: null }));
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false
       });
       streamRef.current = stream;
@@ -58,328 +53,226 @@ export function DocumentUpload() {
         await videoRef.current.play();
       }
     } catch (err) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: false
-        });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
-      } catch (err2: any) {
-        setCameraError('Could not access camera. Please allow permission or upload a photo instead.');
+      setCameraError('Camera access denied. Please check browser permissions.');
+    }
+  };
+
+  const captureSelfie = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    // Trigger visual flash
+    setIsCapturing(true);
+    setTimeout(() => setIsCapturing(false), 150);
+
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d')?.drawImage(video, 0, 0);
+
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new File([blob], `selfie-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        setFiles(prev => ({ ...prev, selfie: file }));
+        setPreviews(prev => ({ ...prev, selfie: URL.createObjectURL(blob) }));
+        // Video is paused visually via CSS or by stopping stream if preferred
+      }
+    }, 'image/jpeg', 0.95);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setFiles(prev => ({ ...prev, [docType]: file }));
+      if (file.type.startsWith('image/')) {
+        setPreviews(prev => ({ ...prev, [docType]: URL.createObjectURL(file) }));
       }
     }
   };
 
-  const captureSelfie = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-
-    const width = video.videoWidth || 640;
-    const height = video.videoHeight || 480;
-    canvas.width = width;
-    canvas.height = height;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0, width, height);
-
-    const blob: Blob | null = await new Promise((resolve) =>
-      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92)
-    );
-    if (!blob) return;
-
-    const file = new File([blob], `selfie-${Date.now()}.jpg`, { type: 'image/jpeg' });
-    pendingSelfieFileRef.current = file;
-    if (selfiePreviewUrl) URL.revokeObjectURL(selfiePreviewUrl);
-    setSelfiePreviewUrl(URL.createObjectURL(blob));
-    stopCamera();
-    setShowSelfiePreview(true);
-  };
-
-  const confirmSelfie = () => {
-    const file = pendingSelfieFileRef.current;
-    if (file) {
-      setFiles((prev) => ({ ...prev, selfie: file }));
-      pendingSelfieFileRef.current = null;
-    }
-    if (selfiePreviewUrl) {
-      URL.revokeObjectURL(selfiePreviewUrl);
-      setSelfiePreviewUrl(null);
-    }
-    setShowSelfiePreview(false);
-    setShowCamera(false);
-  };
-
-  const retakeSelfie = () => {
-    if (selfiePreviewUrl) {
-      URL.revokeObjectURL(selfiePreviewUrl);
-      setSelfiePreviewUrl(null);
-    }
-    pendingSelfieFileRef.current = null;
-    setShowSelfiePreview(false);
-    startCamera();
-  };
-
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, []);
-
   const handleSubmit = async () => {
-  if (!canSubmit) {
-    alert('Please upload all required documents');
-    return;
-  }
-
-  const formData = new FormData();
-  const docTypes: string[] = [];
-  if (files.selfie) { formData.append('document', files.selfie); docTypes.push('selfie'); }
-  if (files.nida) { formData.append('document', files.nida); docTypes.push('nid'); }
-  if (files.tin) { formData.append('document', files.tin); docTypes.push('tin'); }
-  formData.append('documentTypes', JSON.stringify(docTypes));
-
-  try {
-    // This calls the function in your AuthContext
-    await uploadDocuments(formData); 
-    navigate('/waiting-approval');
-  } catch (err) {
-    alert("Upload failed. Please try again.");
-  }
+    setIsUploading(true);
+    const formData = new FormData();
+    if (files.selfie) formData.append('document', files.selfie);
+    if (files.nida) formData.append('document', files.nida);
+    formData.append('documentTypes', JSON.stringify(['selfie', 'nid']));
+    
+    try {
+      await uploadDocuments(formData);
+      navigate('/waiting-approval');
+    } catch (err) {
+      alert("Error uploading documents. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      {/* Header */}
-      <div className="p-4 max-w-2xl mx-auto">
-        <h1 className="text-xl font-semibold text-white">Upload Documents</h1>
-        <p className="text-sm text-slate-400 mt-1">
-          {isEntrepreneur ? 'Entrepreneur' : 'Investor'} Verification
-        </p>
-      </div>
-
-      <div className="p-6 max-w-2xl mx-auto">
-        {/* Info Box */}
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-6">
-          <h3 className="text-white font-medium mb-2">Required Documents:</h3>
-          <ul className="text-sm text-slate-300 space-y-1">
-            {requiredDocs.map((doc, index) => (
-              <li key={index}>• {doc}</li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Upload Sections */}
-        <div className="space-y-4">
-          {/* Selfie */}
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="mb-1 text-white font-medium">Live Selfie</h3>
-                <p className="text-sm text-slate-400">Take a clear photo of your face</p>
-              </div>
-
-              <input
-                type="file"
-                id="selfie-input"
-                hidden
-                accept="image/*"
-                capture="user"
-                onChange={(e) => handleFileChange(e, 'selfie')}
-              />
-              {!files.selfie ? (
-                <button
-                  type="button"
-                  onClick={startCamera}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2"
-                >
-                  <Camera className="w-5 h-5" />
-                  <span>Capture Selfie</span>
-                </button>
-              ) : (
-                <div className="bg-green-900/30 border border-green-700/50 rounded-xl p-4 text-center text-green-300">
-                  <p> {files.selfie.name} selected</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* NIDA */}
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="mb-1 text-white font-medium">National ID (NIDA)</h3>
-                <p className="text-sm text-slate-400">Upload a clear photo of your ID</p>
-              </div>
-
-              <input
-                type="file"
-                id="nida-input"
-                hidden
-                accept="image/*"
-                onChange={(e) => handleFileChange(e, 'nida')}
-              />
-            
-              {!files.nida ? (
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('nida-input')?.click()}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2"
-                >
-                  <Upload className="w-5 h-5" />
-                  <span>Upload NIDA</span>
-                </button>
-              ) : (
-                <div className="bg-green-900/30 border border-green-700/50 rounded-xl p-4 text-center text-green-300">
-                  <p>{files.nida?.name} selected</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* TIN (Entrepreneur only) */}
-          {isEntrepreneur && (
-            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="mb-1 text-white font-medium">TIN Certificate <span className="text-sm text-slate-500">(Optional)</span></h3>
-                  <p className="text-sm text-slate-400">Upload your TIN certificate</p>
-                </div>
-              <input
-                type="file"
-                id="tin-input"
-                hidden
-                accept="image/*,application/pdf"
-                onChange={(e) => handleFileChange(e, 'tin')}
-              />
-              </div>
-              {!files.tin ? (
-                <button
-                type="button"
-                onClick={() => document.getElementById('tin-input')?.click()}
-                  className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl flex items-center justify-center gap-2"
-                >
-                  <FileText className="w-5 h-5" />
-                  <span>Upload TIN (Optional)</span>
-                </button>
-              ) : (
-                <div className="bg-green-900/30 border border-green-700/50 rounded-xl p-4 text-center text-green-300">
-                <CheckCircle2 className="w-8 h-8 mx-auto mb-2" />
-                <p>{files.tin.name} selected</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Submit Button */}
-        <button
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className="w-full mt-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-slate-600 text-white rounded-xl transition-colors font-semibold"
-        >
-          Submit for Approval
-        </button>
-
-        {!canSubmit && (
-          <p className="text-center text-sm text-slate-500 mt-2">
-            Please upload all required documents to continue
+    <div className="min-h-screen flex flex-col md:flex-row bg-white">
+      {/* Brand Side (Left) */}
+      <div className="hidden md:flex md:w-1/3 bg-slate-950 flex-col justify-center items-center p-12 text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600 rounded-full blur-[140px] opacity-10" />
+        <div className="relative z-10 text-center">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center font-bold text-3xl mb-12 shadow-2xl mx-auto">P</div>
+          <h2 className="text-4xl font-bold mb-6 tracking-tight">Identity <br/>Verification.</h2>
+          <p className="text-slate-400 leading-relaxed mb-10 text-lg max-w-xs mx-auto">
+            To ensure a high-trust environment, we require a live selfie and a copy of your National ID.
           </p>
-        )}
+          <div className="p-5 bg-slate-800/50 border border-slate-700 rounded-2xl flex items-center gap-4 text-left max-w-xs mx-auto">
+            <ShieldAlert className="text-amber-500 w-8 h-8 flex-shrink-0" />
+            <p className="text-xs text-slate-300 leading-tight font-medium">Poor quality photos will be rejected by our system.</p>
+          </div>
+        </div>
       </div>
 
-      {/* Camera modal */}
+      {/* Form Side (Right) */}
+      <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
+        <div className="w-full max-w-xl">
+          <div className="mb-10 text-center md:text-left">
+            <h3 className="text-3xl font-bold text-slate-900">Final Verification</h3>
+            <p className="text-slate-500 mt-2">Required for {user?.role} status approval.</p>
+          </div>
+          
+          <div className="grid gap-6">
+            <UploadCard 
+              title="National ID (NIDA)" 
+              description="Front view of your ID card"
+              onAction={() => document.getElementById('nida-input')?.click()}
+              file={files.nida}
+              preview={previews.nida}
+              icon={<Upload className="w-5 h-5" />}
+              onClear={() => {
+                 setFiles(prev => ({ ...prev, nida: null }));
+                 setPreviews(prev => ({ ...prev, nida: null }));
+              }}
+            />
+            <input type="file" id="nida-input" hidden accept="image/*" onChange={(e) => handleFileChange(e, 'nida')} />
+
+            <UploadCard 
+              title="Live Selfie" 
+              description="Real-time face verification"
+              onAction={startCamera}
+              file={files.selfie}
+              preview={previews.selfie}
+              icon={<Camera className="w-5 h-5" />}
+              onClear={() => {
+                setFiles(prev => ({ ...prev, selfie: null }));
+                setPreviews(prev => ({ ...prev, selfie: null }));
+             }}
+            />
+          </div>
+
+          <button 
+            onClick={handleSubmit}
+            disabled={!files.nida || !files.selfie || isUploading}
+            className="w-full mt-10 py-5 bg-blue-600 text-white rounded-3xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:bg-slate-100 disabled:text-slate-400 flex items-center justify-center gap-4 active:scale-[0.98]"
+          >
+            {isUploading ? <Loader2 className="animate-spin" /> : <>Finalize Submission <ArrowRight className="w-5 h-5" /></>}
+          </button>
+        </div>
+      </div>
+
+      {/* Modern Camera Modal */}
       {showCamera && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-gray-900">Capture selfie</h3>
-                <p className="text-xs text-gray-500">Allow camera permission to continue.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  stopCamera();
-                  setShowCamera(false);
-                  setShowSelfiePreview(false);
-                  if (selfiePreviewUrl) {
-                    URL.revokeObjectURL(selfiePreviewUrl);
-                    setSelfiePreviewUrl(null);
-                  }
-                  pendingSelfieFileRef.current = null;
-                }}
-                className="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold"
-              >
-                Close
-              </button>
+        <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6">
+          <div className="w-full max-w-sm space-y-8 text-center text-white">
+            <div className="space-y-2">
+              <h3 className="text-2xl font-bold tracking-tight">
+                {previews.selfie ? "Looks Good?" : "Face Verification"}
+              </h3>
+              <p className="text-slate-400 text-sm">
+                {previews.selfie ? "Ensure your face is clearly visible." : "Position your face inside the circle."}
+              </p>
             </div>
 
-            <div className="p-4">
-              {showSelfiePreview && selfiePreviewUrl ? (
+            <div className="relative aspect-square w-full rounded-full border-4 border-blue-500 shadow-[0_0_50px_rgba(59,130,246,0.3)] overflow-hidden bg-slate-900">
+              {previews.selfie ? (
+                <img src={previews.selfie} className="w-full h-full object-cover scale-x-[-1]" alt="Selfie Preview" />
+              ) : (
+                <video ref={videoRef} className="w-full h-full object-cover scale-x-[-1]" playsInline muted />
+              )}
+              {isCapturing && <div className="absolute inset-0 bg-white z-10 animate-pulse" />}
+              {!previews.selfie && <div className="absolute inset-0 border-[30px] border-black/40 pointer-events-none rounded-full" />}
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {!previews.selfie ? (
                 <>
-                  <div className="rounded-xl overflow-hidden bg-black">
-                    <img
-                      src={selfiePreviewUrl}
-                      alt="Selfie preview"
-                      className="w-full h-72 object-contain bg-black"
-                    />
-                  </div>
-                  <p className="text-sm text-gray-500 mt-2 text-center">Preview your photo</p>
-                  <div className="mt-4 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={retakeSelfie}
-                      className="flex-1 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold"
-                    >
-                      Retake
-                    </button>
-                    <button
-                      type="button"
-                      onClick={confirmSelfie}
-                      className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-                    >
-                      Use photo
-                    </button>
-                  </div>
+                  <button 
+                    onClick={captureSelfie} 
+                    className="w-full py-4 bg-white text-black rounded-2xl font-black text-lg hover:bg-slate-100 transition-colors"
+                  >
+                    Capture Photo
+                  </button>
+                  <button 
+                    onClick={() => { stopCamera(); setShowCamera(false); }} 
+                    className="text-slate-400 font-bold hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
                 </>
-              ) : cameraError ? (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">
-                  {cameraError}
-                </div>
               ) : (
                 <>
-                  <div className="rounded-xl overflow-hidden bg-black">
-                    <video ref={videoRef} className="w-full h-72 object-cover" playsInline muted />
-                  </div>
-                  <canvas ref={canvasRef} className="hidden" />
-                  <div className="mt-4 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('selfie-input')?.click()}
-                      className="flex-1 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold"
-                    >
-                      Upload instead
-                    </button>
-                    <button
-                      type="button"
-                      onClick={captureSelfie}
-                      disabled={!!cameraError}
-                      className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold"
-                    >
-                      Capture
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => { stopCamera(); setShowCamera(false); }} 
+                    className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-lg shadow-xl"
+                  >
+                    Confirm & Use
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (previews.selfie) URL.revokeObjectURL(previews.selfie);
+                      setPreviews(prev => ({ ...prev, selfie: null }));
+                      setFiles(prev => ({ ...prev, selfie: null }));
+                      startCamera(); 
+                    }}
+                    className="w-full py-4 bg-slate-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2"
+                  >
+                    <RotateCcw className="w-5 h-5" /> Retake Photo
+                  </button>
                 </>
               )}
             </div>
           </div>
+          <canvas ref={canvasRef} className="hidden" />
         </div>
+      )}
+    </div>
+  );
+}
+
+function UploadCard({ title, description, onAction, file, preview, icon, onClear }: any) {
+  return (
+    <div className={`p-6 border-2 rounded-[2rem] transition-all duration-300 ${file ? 'border-green-500 bg-green-50/20' : 'border-slate-100 bg-slate-50 hover:border-blue-200'}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className={`p-3 rounded-xl transition-colors ${file ? 'bg-green-500 text-white' : 'bg-white text-slate-400 shadow-sm'}`}>{icon}</div>
+          <div>
+            <h4 className="font-bold text-slate-900 text-sm tracking-tight">{title}</h4>
+            <p className="text-xs text-slate-500 font-medium">{file ? 'Document Selected' : description}</p>
+          </div>
+        </div>
+        <div>
+            {!file ? (
+                <button onClick={onAction} className="bg-white border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-sm">
+                    Add
+                </button>
+            ) : (
+                <button onClick={onClear} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                    <X className="w-5 h-5" />
+                </button>
+            )}
+        </div>
+      </div>
+      {preview && (
+          <div className="mt-5 rounded-2xl h-44 w-full overflow-hidden border border-slate-200 bg-black relative group">
+              <img src={preview} className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                 <span className="text-[10px] font-bold text-white uppercase tracking-widest">Ready to Verify</span>
+              </div>
+          </div>
       )}
     </div>
   );

@@ -1,16 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, CheckCircle2 } from 'lucide-react';
+import { Mail, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
-import { handleApiError } from '../utils/errorHandler';
 
 export function EmailVerification() {
   const navigate = useNavigate();
   const { verifyEmail, user } = useAuth();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
   const [verified, setVerified] = useState(false);
 
   const handleChange = (index: number, value: string) => {
@@ -18,118 +15,74 @@ export function EmailVerification() {
       const newCode = [...code];
       newCode[index] = value;
       setCode(newCode);
-
-      // Auto-focus next input
-      if (value && index < 5) {
-        const nextInput = document.getElementById(`code-${index + 1}`);
-        nextInput?.focus();
-      }
+      if (value && index < 5) document.getElementById(`code-${index + 1}`)?.focus();
     }
   };
 
   const handleVerify = async () => {
-    const verificationCode = code.join('');
-    if (verificationCode.length !== 6) {
-      alert('Please enter the complete 6-digit code');
-      return;
-    }
-
     setLoading(true);
     try {
-      await verifyEmail(verificationCode);
+      await verifyEmail(code.join(''));
       setVerified(true);
-      setTimeout(() => {
-        navigate('/upload-documents');
-      }, 2000);
+      setTimeout(() => navigate('/upload-documents'), 1500);
     } catch (error) {
-      alert('Invalid verification code. Please try again.');
+      alert('Invalid code');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResend = async () => {
-    const email = user?.email;
-    if (!email) {
-      alert('Unable to resend: no email on file. Please log in again.');
-      return;
-    }
-    setResendLoading(true);
-    try {
-      await api.post('/auth/resend-verification', { email });
-      alert('A new verification code has been sent to your email. Please check your inbox.');
-    } catch (err: any) {
-      const message = handleApiError(err);
-      alert(message || 'Failed to resend code. Please try again.');
-    } finally {
-      setResendLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
-      <div className="max-w-md w-full">
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-8">
+    <div className="min-h-screen flex flex-col md:flex-row bg-white">
+      {/* Left Brand Side: Centered */}
+      <div className="hidden md:flex md:w-1/2 bg-slate-950 relative overflow-hidden flex-col justify-center items-center p-12">
+         <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-bold text-4xl mb-10 shadow-2xl">P</div>
+         <h2 className="text-4xl lg:text-5xl font-extrabold text-white leading-tight">Verification First.</h2>
+         <p className="mt-6 text-slate-400 text-lg text-center">
+           We've implemented multi-step authentication to protect our entrepreneurs and investors from unauthorized access.
+         </p>
+         <div className="mt-12 w-full max-w-xs p-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div className="bg-green-100 p-2 rounded-lg">
+                <ShieldCheck className="text-green-600 w-6 h-6" />
+            </div>
+            <div className="text-left text-xs font-semibold text-slate-600">Your connection is fully encrypted.</div>
+         </div>
+      </div>
+
+      {/* Right Side */}
+      <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
+        <div className="w-full max-w-md text-center">
           {!verified ? (
             <>
-              <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-500/20 rounded-full mb-4">
-                  <Mail className="w-8 h-8 text-blue-400" />
-                </div>
-                <h2 className="mb-2 text-white font-semibold text-xl">Verify Your Email</h2>
-                <p className="text-slate-400 text-sm">
-                  We've sent a 6-digit code to
-                </p>
-                <p className="text-blue-400 font-medium">{user?.email}</p>
+              <div className="w-20 h-20 bg-blue-50 rounded-full mx-auto mb-8 flex items-center justify-center">
+                <Mail className="w-10 h-10 text-blue-600" />
+              </div>
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Check your inbox</h2>
+              <p className="text-slate-500 mb-10 text-lg">A 6-digit code was sent to <br/><span className="text-slate-900 font-bold">{user?.email}</span></p>
+
+              <div className="flex gap-3 justify-center mb-10">
+                {code.map((digit, index) => (
+                  <input
+                    key={index}
+                    id={`code-${index}`}
+                    type="text"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleChange(index, e.target.value)}
+                    className="w-12 h-16 text-center text-2xl font-bold bg-slate-50 border-2 border-slate-200 rounded-xl focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none"
+                  />
+                ))}
               </div>
 
-              <div className="mb-6">
-                <label className="block text-sm mb-3 text-center text-slate-300">Enter Verification Code</label>
-                <div className="flex gap-2 justify-center">
-                  {code.map((digit, index) => (
-                    <input
-                      key={index}
-                      id={`code-${index}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleChange(index, e.target.value)}
-                      className="w-12 h-14 text-center text-2xl bg-slate-700/50 border-2 border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={handleVerify}
-                disabled={loading}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white rounded-xl transition-colors mb-4"
-              >
+              <button onClick={handleVerify} disabled={loading} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 text-lg">
                 {loading ? 'Verifying...' : 'Verify Email'}
               </button>
-
-              <div className="text-center">
-                <p className="text-sm text-slate-400 mb-2">Didn't receive the code?</p>
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  disabled={resendLoading}
-                  className="text-blue-400 hover:text-blue-300 hover:underline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {resendLoading ? 'Sending...' : 'Resend Code'}
-                </button>
-              </div>
             </>
           ) : (
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-4">
-                <CheckCircle2 className="w-8 h-8 text-green-400" />
-              </div>
-              <h2 className="mb-2 text-white font-semibold text-xl">Email Verified!</h2>
-              <p className="text-slate-400">
-                Redirecting to document upload...
-              </p>
+            <div className="animate-in zoom-in duration-500">
+              <CheckCircle2 className="w-24 h-24 text-green-500 mx-auto mb-6" />
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Success!</h2>
+              <p className="text-slate-500 text-lg">Forwarding you to the next step...</p>
             </div>
           )}
         </div>

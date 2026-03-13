@@ -8,7 +8,7 @@ const {
 } = require('../controllers/upload.controller');
 const { protect, requireEmailVerification } = require('../middleware/auth.middleware');
 const { uploadRateLimiter } = require('../middleware/rateLimiter.middleware');
-const upload = require('../utils/fileUpload');
+const upload = require('../middleware/multer.middleware');
 
 // All routes require authentication
 router.use(protect);

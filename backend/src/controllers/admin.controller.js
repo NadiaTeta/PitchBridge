@@ -1,6 +1,7 @@
 const User = require('../models/User.model');
 const Project = require('../models/Project.model');
 const Investment = require('../models/Investment.model');
+const { sendEmail } = require('../utils/email');
 
 // @desc    Get pending project verifications
 // @route   GET /api/v1/admin/verifications/pending
@@ -281,6 +282,13 @@ exports.approveUser = async (req, res, next) => {
 
     await user.save();
 
+    // Send approval email
+    await sendEmail({
+      to: user.email,
+      template: 'accountApproved',
+      context: { name: user.name }
+    });
+
     res.status(200).json({
       success: true,
       message: `User ${user.name} has been approved`,
@@ -326,6 +334,13 @@ exports.rejectUser = async (req, res, next) => {
     user.accountStatus = 'suspended';
 
     await user.save();
+
+    // Send rejection email
+    await sendEmail({
+      to: user.email,
+      template: 'accountRejected',
+      context: { name: user.name, reason }
+    });
 
     res.status(200).json({
       success: true,

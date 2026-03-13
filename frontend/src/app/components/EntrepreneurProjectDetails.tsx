@@ -127,6 +127,20 @@ if (loading) {
               {project.description}
            </p>
         </div>
+
+        {/* Video Pitch */}
+        {project.video && (
+          <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-100">
+            <div className="flex items-center gap-2 mb-4">
+              <h3 className="font-bold text-slate-900">Pitch Video</h3>
+            </div>
+            <video
+              src={project.video}
+              controls
+              className="w-full rounded-xl aspect-video bg-slate-900"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

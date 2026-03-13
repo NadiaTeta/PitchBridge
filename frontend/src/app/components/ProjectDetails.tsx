@@ -137,6 +137,18 @@ export function ProjectDetails() {
               )}
             </div>
 
+            {/* Video Pitch Card */}
+            {project.video && (
+              <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-sm border border-slate-100">
+                <h3 className="text-slate-900 font-bold text-lg md:text-xl mb-4">Pitch Video</h3>
+                <video
+                  src={project.video}
+                  controls
+                  className="w-full rounded-xl aspect-video bg-slate-900"
+                />
+              </div>
+            )}
+
             {/* ROI Card */}
             <div className="bg-slate-900 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-xl text-white overflow-hidden relative">
               <div className="absolute top-0 right-0 p-8 opacity-10 hidden md:block">

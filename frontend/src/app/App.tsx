@@ -21,7 +21,7 @@ import { EntrepreneurProjectDetails } from './components/EntrepreneurProjectDeta
 import { AboutPage } from './components/AboutPage';
 import { ContactPage } from './components/ContactPage';
 import { Settings } from './components/Settings';
-import { EULA } from './components/Eula';
+import { EULA } from './components/EULA';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 
 function AppLayout() {

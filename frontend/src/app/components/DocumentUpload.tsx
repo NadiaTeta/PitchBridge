@@ -1,32 +1,43 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Upload, CheckCircle2, ShieldAlert, ArrowRight, X, RotateCcw, Loader2 } from 'lucide-react';
+import { Camera, Upload, ShieldAlert, ArrowRight, X, RotateCcw, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export function DocumentUpload() {
   const navigate = useNavigate();
   const { user, uploadDocuments } = useAuth();
-  
-  // State for files and previews
+
   const [files, setFiles] = useState<{ [key: string]: File | null }>({ selfie: null, nida: null });
   const [previews, setPreviews] = useState<{ [key: string]: string | null }>({ selfie: null, nida: null });
   const [isUploading, setIsUploading] = useState(false);
-  
-  // Camera & Modal States
   const [showCamera, setShowCamera] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [streamReady, setStreamReady] = useState(false); // NEW
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const pendingStreamRef = useRef<MediaStream | null>(null); // NEW
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Memory cleanup
   useEffect(() => {
     return () => {
       Object.values(previews).forEach(url => { if (url) URL.revokeObjectURL(url); });
       stopCamera();
     };
   }, []);
+
+  // NEW: attach stream after modal renders and videoRef exists
+  useEffect(() => {
+    if (streamReady && showCamera && videoRef.current && pendingStreamRef.current) {
+      videoRef.current.srcObject = pendingStreamRef.current;
+      videoRef.current.play().catch(() => {
+        setCameraError('Could not start video stream. Please try again.');
+      });
+      setStreamReady(false);
+      pendingStreamRef.current = null;
+    }
+  }, [streamReady, showCamera]);
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -37,8 +48,6 @@ export function DocumentUpload() {
 
   const startCamera = async () => {
     setCameraError(null);
-    setShowCamera(true);
-    // Logic to clear old selfie if starting fresh
     setFiles(prev => ({ ...prev, selfie: null }));
     setPreviews(prev => ({ ...prev, selfie: null }));
 
@@ -48,19 +57,18 @@ export function DocumentUpload() {
         audio: false
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
+      pendingStreamRef.current = stream; // store for the effect to pick up
+      setShowCamera(true);
+      setStreamReady(true); // trigger effect after render
     } catch (err) {
       setCameraError('Camera access denied. Please check browser permissions.');
+      setShowCamera(true);
     }
   };
 
   const captureSelfie = () => {
     if (!videoRef.current || !canvasRef.current) return;
-    
-    // Trigger visual flash
+
     setIsCapturing(true);
     setTimeout(() => setIsCapturing(false), 150);
 
@@ -75,7 +83,6 @@ export function DocumentUpload() {
         const file = new File([blob], `selfie-${Date.now()}.jpg`, { type: 'image/jpeg' });
         setFiles(prev => ({ ...prev, selfie: file }));
         setPreviews(prev => ({ ...prev, selfie: URL.createObjectURL(blob) }));
-        // Video is paused visually via CSS or by stopping stream if preferred
       }
     }, 'image/jpeg', 0.95);
   };
@@ -96,7 +103,7 @@ export function DocumentUpload() {
     if (files.selfie) formData.append('document', files.selfie);
     if (files.nida) formData.append('document', files.nida);
     formData.append('documentTypes', JSON.stringify(['selfie', 'nid']));
-    
+
     try {
       await uploadDocuments(formData);
       navigate('/waiting-approval');
@@ -109,7 +116,7 @@ export function DocumentUpload() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-white">
-      {/* Brand Side (Left) */}
+      {/* Brand Side */}
       <div className="hidden md:flex md:w-1/3 bg-slate-950 flex-col justify-center items-center p-12 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600 rounded-full blur-[140px] opacity-10" />
         <div className="relative z-10 text-center">
@@ -125,31 +132,31 @@ export function DocumentUpload() {
         </div>
       </div>
 
-      {/* Form Side (Right) */}
+      {/* Form Side */}
       <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
         <div className="w-full max-w-xl">
           <div className="mb-10 text-center md:text-left">
             <h3 className="text-3xl font-bold text-slate-900">Final Verification</h3>
             <p className="text-slate-500 mt-2">Required for {user?.role} status approval.</p>
           </div>
-          
+
           <div className="grid gap-6">
-            <UploadCard 
-              title="National ID (NIDA)" 
+            <UploadCard
+              title="National ID (NIDA)"
               description="Front view of your ID card"
               onAction={() => document.getElementById('nida-input')?.click()}
               file={files.nida}
               preview={previews.nida}
               icon={<Upload className="w-5 h-5" />}
               onClear={() => {
-                 setFiles(prev => ({ ...prev, nida: null }));
-                 setPreviews(prev => ({ ...prev, nida: null }));
+                setFiles(prev => ({ ...prev, nida: null }));
+                setPreviews(prev => ({ ...prev, nida: null }));
               }}
             />
             <input type="file" id="nida-input" hidden accept="image/*" onChange={(e) => handleFileChange(e, 'nida')} />
 
-            <UploadCard 
-              title="Live Selfie" 
+            <UploadCard
+              title="Live Selfie"
               description="Real-time face verification"
               onAction={startCamera}
               file={files.selfie}
@@ -158,11 +165,11 @@ export function DocumentUpload() {
               onClear={() => {
                 setFiles(prev => ({ ...prev, selfie: null }));
                 setPreviews(prev => ({ ...prev, selfie: null }));
-             }}
+              }}
             />
           </div>
 
-          <button 
+          <button
             onClick={handleSubmit}
             disabled={!files.nida || !files.selfie || isUploading}
             className="w-full mt-10 py-5 bg-blue-600 text-white rounded-3xl font-bold text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:bg-slate-100 disabled:text-slate-400 flex items-center justify-center gap-4 active:scale-[0.98]"
@@ -172,7 +179,10 @@ export function DocumentUpload() {
         </div>
       </div>
 
-      {/* Modern Camera Modal */}
+      {/* Canvas lives here — always in the DOM so canvasRef is never null */}
+      <canvas ref={canvasRef} className="hidden" />
+
+      {/* Camera Modal */}
       {showCamera && (
         <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6">
           <div className="w-full max-w-sm space-y-8 text-center text-white">
@@ -183,6 +193,10 @@ export function DocumentUpload() {
               <p className="text-slate-400 text-sm">
                 {previews.selfie ? "Ensure your face is clearly visible." : "Position your face inside the circle."}
               </p>
+              {/* Show camera error if permission denied */}
+              {cameraError && (
+                <p className="text-red-400 text-sm bg-red-950/50 rounded-xl p-3">{cameraError}</p>
+              )}
             </div>
 
             <div className="relative aspect-square w-full rounded-full border-4 border-blue-500 shadow-[0_0_50px_rgba(59,130,246,0.3)] overflow-hidden bg-slate-900">
@@ -198,14 +212,15 @@ export function DocumentUpload() {
             <div className="flex flex-col gap-4">
               {!previews.selfie ? (
                 <>
-                  <button 
-                    onClick={captureSelfie} 
-                    className="w-full py-4 bg-white text-black rounded-2xl font-black text-lg hover:bg-slate-100 transition-colors"
+                  <button
+                    onClick={captureSelfie}
+                    disabled={!!cameraError}
+                    className="w-full py-4 bg-white text-black rounded-2xl font-black text-lg hover:bg-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Capture Photo
                   </button>
-                  <button 
-                    onClick={() => { stopCamera(); setShowCamera(false); }} 
+                  <button
+                    onClick={() => { stopCamera(); setShowCamera(false); }}
                     className="text-slate-400 font-bold hover:text-white transition-colors"
                   >
                     Cancel
@@ -213,18 +228,18 @@ export function DocumentUpload() {
                 </>
               ) : (
                 <>
-                  <button 
-                    onClick={() => { stopCamera(); setShowCamera(false); }} 
+                  <button
+                    onClick={() => { stopCamera(); setShowCamera(false); }}
                     className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-lg shadow-xl"
                   >
                     Confirm & Use
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       if (previews.selfie) URL.revokeObjectURL(previews.selfie);
                       setPreviews(prev => ({ ...prev, selfie: null }));
                       setFiles(prev => ({ ...prev, selfie: null }));
-                      startCamera(); 
+                      startCamera();
                     }}
                     className="w-full py-4 bg-slate-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2"
                   >
@@ -234,7 +249,6 @@ export function DocumentUpload() {
               )}
             </div>
           </div>
-          <canvas ref={canvasRef} className="hidden" />
         </div>
       )}
     </div>
@@ -253,26 +267,26 @@ function UploadCard({ title, description, onAction, file, preview, icon, onClear
           </div>
         </div>
         <div>
-            {!file ? (
-                <button onClick={onAction} className="bg-white border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-sm">
-                    Add
-                </button>
-            ) : (
-                <button onClick={onClear} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
-                    <X className="w-5 h-5" />
-                </button>
-            )}
+          {!file ? (
+            <button onClick={onAction} className="bg-white border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-sm">
+              Add
+            </button>
+          ) : (
+            <button onClick={onClear} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
       {preview && (
-          <div className="mt-5 rounded-2xl h-44 w-full overflow-hidden border border-slate-200 bg-black relative group">
-              <img src={preview} className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                 <span className="text-[10px] font-bold text-white uppercase tracking-widest">Ready to Verify</span>
-              </div>
+        <div className="mt-5 rounded-2xl h-44 w-full overflow-hidden border border-slate-200 bg-black relative group">
+          <img src={preview} className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="absolute bottom-3 left-3 flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="text-[10px] font-bold text-white uppercase tracking-widest">Ready to Verify</span>
           </div>
+        </div>
       )}
     </div>
   );

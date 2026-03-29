@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, CheckCircle2, Award, Heart } from 'lucide-react';
+import {
+  Search,
+  SlidersHorizontal,
+  CheckCircle2,
+  Award,
+  Heart,
+  MapPin,
+  ArrowRight,
+} from 'lucide-react';
 import { categories, rwandanDistricts } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 import { useProjects } from '../hooks/useProjects';
 import { useProjectActions } from '../hooks/useProjectActions';
-import api from '../services/api';
-import { handleApiError } from '../utils/errorHandler';
 
 export function InvestorDiscoveryFeed() {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
+
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,41 +25,55 @@ export function InvestorDiscoveryFeed() {
   const { projects, loading, error } = useProjects({
     category: selectedCategory === 'all' ? undefined : selectedCategory,
     location: selectedLocation === 'all' ? undefined : selectedLocation,
-    // Backend uses status='active' for admin-approved projects
-    status: 'active'
+    status: 'active',
   });
 
   const { toggleWatchlist } = useProjectActions();
 
-  const handleToggleWatchlist = async (e: React.MouseEvent, projectId: string) => {
+  const handleToggleWatchlist = async (
+    e: React.MouseEvent,
+    projectId: string
+  ) => {
     e.stopPropagation();
     try {
       await toggleWatchlist(projectId);
     } catch (error) {
-      console.error('Error toggling watchlist:', error);
+      console.error(error);
     }
   };
 
-  const filteredProjects = projects.filter((project) => {
-    const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.location.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
+  const filteredProjects = useMemo(() => {
+    return projects.filter((project) => {
+      const query = searchQuery.toLowerCase();
+      return (
+        project.name.toLowerCase().includes(query) ||
+        project.location.toLowerCase().includes(query)
+      );
+    });
+  }, [projects, searchQuery]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-RW', {
       style: 'currency',
       currency: 'RWF',
       minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const getProgress = (raised: number, fundingGoal: number) => {
+    if (!fundingGoal || fundingGoal <= 0) return 0;
+    return Math.min(Math.round((raised / fundingGoal) * 100), 100);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading projects...</p>
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-blue-700 mx-auto" />
+          <p className="mt-4 text-base font-medium text-slate-700">
+            Loading investment opportunities...
+          </p>
         </div>
       </div>
     );
@@ -60,12 +81,15 @@ export function InvestorDiscoveryFeed() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center text-red-600">
-          <p>Error: {error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl"
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <div className="bg-white border border-red-100 rounded-3xl p-8 text-center shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-900">
+            Something went wrong
+          </h2>
+          <p className="mt-2 text-slate-500">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-5 px-5 py-3 rounded-2xl bg-blue-700 text-white font-semibold hover:bg-blue-800"
           >
             Retry
           </button>
@@ -75,130 +99,191 @@ export function InvestorDiscoveryFeed() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 md:pb-12">
-      {/* Header & Filters */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-        <div className="p-4 max-w-7xl mx-auto">
-          {/* Search Bar - Full width on mobile */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search project or location..."
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-100 border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all outline-none text-sm md:text-base"
-            />
-          </div>
+    <div className="min-h-screen bg-slate-50 pb-24">
+      {/* HEADER */}
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 py-5">
+          <div className="flex flex-col gap-5">
 
-          {/* Horizontal Scrolling Categories */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-            <div className="flex items-center justify-center bg-gray-100 p-2 rounded-lg md:bg-transparent md:p-0">
-               <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            {/* TITLE */}
+            <div>
+              <p className="text-sm uppercase tracking-widest text-blue-700 font-semibold">
+                Discovery Feed
+              </p>
+              <h1 className="text-3xl font-bold text-slate-900 mt-1">
+                Explore investment opportunities
+              </h1>
+              <p className="text-slate-500 mt-2 text-sm md:text-base">
+                Discover verified founders across Rwanda
+              </p>
             </div>
-            <button
-              onClick={() => setSelectedCategory('all')}
-              className={`px-4 py-1.5 rounded-full text-xs md:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
-                selectedCategory === 'all' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              All Sectors
-            </button>
-            {categories.map((cat) => (
+
+            {/* SEARCH + LOCATION */}
+            <div className="grid md:grid-cols-[1fr_220px] gap-3">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search projects..."
+                  className="w-full pl-12 pr-4 py-3 rounded-2xl bg-slate-100 border border-slate-200 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-sm md:text-base"
+                />
+              </div>
+
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <select
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-100 border border-slate-200 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none text-sm md:text-base"
+                >
+                  <option value="all">All locations</option>
+                  {rwandanDistricts.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* CATEGORY FILTER */}
+            <div className="flex gap-2 overflow-x-auto">
+              <div className="p-3 rounded-xl bg-slate-100 border border-slate-200">
+                <SlidersHorizontal className="w-4 h-4 text-slate-600" />
+              </div>
+
               <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-1.5 rounded-full text-xs md:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
-                  selectedCategory === cat.id ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                onClick={() => setSelectedCategory('all')}
+                className={`px-4 py-2 rounded-xl text-sm ${
+                  selectedCategory === 'all'
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-white border border-slate-200 text-slate-600'
                 }`}
               >
-                <span className="mr-1">{cat.icon}</span>
-                {cat.name}
+                All sectors
               </button>
-            ))}
-          </div>
 
-          {/* Location filter */}
-          <div className="mt-3">
-            <label className="block text-[11px] font-semibold text-gray-500 mb-1">
-              Filter by location
-            </label>
-            <select
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-              className="w-full md:w-64 px-3 py-2 rounded-xl bg-gray-100 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
-            >
-              <option value="all">All locations</option>
-              {rwandanDistricts.map((district) => (
-                <option key={district} value={district}>
-                  {district}
-                </option>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-4 py-2 rounded-xl text-sm ${
+                    selectedCategory === cat.id
+                      ? 'bg-blue-700 text-white'
+                      : 'bg-white border border-slate-200 text-slate-600'
+                  }`}
+                >
+                  {cat.icon} {cat.name}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Responsive Grid */}
-      <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+      {/* GRID */}
+      <div className="max-w-7xl mx-auto px-4 py-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredProjects.map((project) => {
-          const isFavorited = user?.watchlist?.includes(project.id || project._id);
-          
+          const id = project.id || project._id;
+          const isFav = user?.watchlist?.includes(id);
+          const progress = getProgress(project.raised, project.fundingGoal);
+
           return (
             <div
-              key={project.id}
-              onClick={() => navigate(`/project/${project.id}`)}
-              className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 relative flex flex-col"
+              key={id}
+              onClick={() => navigate(`/project/${id}`)}
+              className="group bg-white border border-slate-200 rounded-3xl shadow-sm hover:shadow-xl transition cursor-pointer flex flex-col"
             >
-              {/* Heart Button - larger touch target on mobile */}
-              <button 
-                onClick={(e) => handleToggleWatchlist(e, project.id || project._id)}
-                className={`absolute top-3 right-3 z-20 p-2.5 rounded-full backdrop-blur-md transition-all ${
-                  isFavorited ? 'bg-red-500 text-white' : 'bg-black/20 text-white hover:bg-black/40'
-                }`}
-              >
-                <Heart className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
-              </button>
+              {/* TOP */}
+              <div className="p-5 border-b bg-gradient-to-br from-slate-50 to-blue-50">
+                <div className="flex justify-between items-start">
 
-              <div className="relative px-4 py-3 bg-slate-100 flex-shrink-0 flex items-center justify-between">
-                {project.verified?.nid && (
-                  <div className="bg-blue-600 text-white px-2.5 py-1 rounded-lg flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider">
-                    <CheckCircle2 className="w-3 h-3" /> Verified
+                  <div className="flex gap-2 flex-wrap">
+                    {project.verified?.nid && (
+                      <span className="bg-blue-700 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Verified
+                      </span>
+                    )}
+
+                    <span className="text-sm text-slate-600 flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      {project.location}
+                    </span>
                   </div>
-                )}
-                <span className="text-xs font-medium text-slate-500">📍 {project.location}</span>
+
+                  <button
+                    onClick={(e) => handleToggleWatchlist(e, id)}
+                    className={`w-10 h-10 flex items-center justify-center rounded-full border ${
+                      isFav
+                        ? 'bg-red-50 text-red-500 border-red-200'
+                        : 'bg-white border-slate-200 text-slate-400'
+                    }`}
+                  >
+                    <Heart className={`w-5 h-5 ${isFav ? 'fill-current' : ''}`} />
+                  </button>
+                </div>
+
+                <h3 className="mt-4 text-lg md:text-xl font-bold text-slate-900 group-hover:text-blue-700">
+                  {project.name}
+                </h3>
+
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div>
+                    <p className="text-sm text-slate-500">Raised</p>
+                    <p className="font-bold text-slate-900">
+                      {formatCurrency(project.raised)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-slate-500">Goal</p>
+                    <p className="font-bold text-slate-900">
+                      {formatCurrency(project.fundingGoal)}
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="p-4 md:p-5 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-2 gap-2">
-                  <div className="min-w-0"> {/* Prevents text overflow */}
-                    <h3 className="text-base md:text-lg font-bold text-gray-900 leading-tight truncate">{project.name}</h3>
-                    <p className="text-xs md:text-sm text-gray-500 flex items-center gap-1 mt-1">📍 {project.location}</p>
+              {/* BOTTOM */}
+              <div className="p-5 flex flex-col flex-1">
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="font-medium text-slate-700">
+                      Funding Progress
+                    </span>
+                    <span className="font-bold text-blue-700">{progress}%</span>
                   </div>
-                  <div className="bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-[10px] md:text-xs font-bold flex-shrink-0">
-                    {Math.round((project.raised / project.fundingGoal) * 100)}%
-                  </div>
-                </div>
 
-                <div className="my-3 md:my-4">
-                  <div className="h-1.5 md:h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-600 rounded-full transition-all duration-1000" 
-                      style={{ width: `${(project.raised / project.fundingGoal) * 100}%` }} 
+                  <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-700 to-cyan-500"
+                      style={{ width: `${progress}%` }}
                     />
                   </div>
-                  <div className="flex justify-between mt-2">
-                    <span className="text-[10px] md:text-xs font-bold text-blue-600">{formatCurrency(project.raised)}</span>
-                    <span className="text-[10px] md:text-xs text-gray-400">Goal: {formatCurrency(project.fundingGoal)}</span>
-                  </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 mt-auto">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Award className="w-3.5 h-3.5 text-yellow-600" />
-                    <span className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase">Investor ROI</span>
+                <div className="mt-5 bg-blue-50 border border-blue-100 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Award className="w-4 h-4 text-blue-700" />
+                    <span className="text-sm font-semibold text-blue-700">
+                      Investor ROI
+                    </span>
                   </div>
-                  <p className="text-[11px] md:text-xs text-gray-700 line-clamp-2 italic leading-relaxed">"{project.roi}"</p>
+                  <p className="text-sm text-slate-800">
+                    {project.roi || 'ROI shared after due diligence'}
+                  </p>
+                </div>
+
+                <div className="mt-auto pt-4 flex justify-between items-center border-t border-slate-100">
+                  <span className="text-sm text-slate-600">
+                    View details
+                  </span>
+
+                  <div className="w-10 h-10 flex items-center justify-center bg-slate-900 text-white rounded-full group-hover:translate-x-1 transition">
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
                 </div>
               </div>
             </div>

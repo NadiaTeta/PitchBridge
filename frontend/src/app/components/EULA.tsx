@@ -19,7 +19,7 @@ export function EULA() {
             <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white">P</div>
             <div>
               <h1 className="text-lg font-black tracking-tight">End-User Licence Agreement</h1>
-              <p className="text-slate-400 text-xs">Last updated: January 2025</p>
+              <p className="text-slate-400 text-xs">Last updated: March 2026</p>
             </div>
           </div>
         </div>

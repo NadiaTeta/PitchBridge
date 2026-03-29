@@ -19,7 +19,7 @@ export function PrivacyPolicy() {
             <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white">P</div>
             <div>
               <h1 className="text-lg font-black tracking-tight">Privacy Policy</h1>
-              <p className="text-slate-400 text-xs">Last updated: January 2025</p>
+              <p className="text-slate-400 text-xs">Last updated: March 2026</p>
             </div>
           </div>
         </div>
@@ -33,12 +33,12 @@ export function PrivacyPolicy() {
           <div className="p-5 bg-emerald-50 border border-emerald-100 rounded-xl flex gap-4">
             <Lock className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-emerald-800 leading-relaxed">
-              PitchBridge is committed to protecting your personal data. This Privacy Policy explains how we collect, use, store, and share your information in compliance with Rwanda's Law No. 058/2021 on the Protection of Personal Data and Privacy.
+              PitchBridge is committed to protecting your personal data. This Privacy Policy explains how we collect, use, store, and share your information in alignment with Rwanda's Law No. 058/2021 on the Protection of Personal Data and Privacy.
             </p>
           </div>
 
           <Section title="1. Who We Are">
-            <p><strong>PitchBridge</strong> is a digital platform connecting Rwandan entrepreneurs and investors. We operate as the data controller for all personal information collected through the platform, accessible at <strong>pitchbridge.live</strong>.</p>
+            <p><strong>PitchBridge</strong> is a digital platform connecting Rwandan entrepreneurs and investors. We operate as the data controller for all personal information collected through the platform, accessible at <strong>nukita.netlify.app</strong>.</p>
           </Section>
 
           <Section title="2. Data We Collect">
@@ -97,7 +97,7 @@ export function PrivacyPolicy() {
                   ['Connecting entrepreneurs with investors', 'Contract performance'],
                   ['Sending transactional emails (verification, approval)', 'Contract performance'],
                   ['Platform improvement and analytics', 'Legitimate interest'],
-                  ['Compliance with Rwandan regulatory requirements', 'Legal obligation'],
+                  ['Alignment with Rwandan regulatory requirements', 'Legal obligation'],
                 ].map(([purpose, basis], i) => (
                   <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
                     <td className="p-3 border border-slate-200 text-slate-600">{purpose}</td>
@@ -157,7 +157,7 @@ export function PrivacyPolicy() {
                 </div>
               ))}
             </div>
-            <p className="mt-4">To exercise any of these rights, contact us at <strong>legal@pitchbridge.live</strong>. We will respond within 30 days.</p>
+            <p className="mt-4">To exercise any of these rights, contact us at <strong>pitchbridge.support@gmail.com</strong>. We will respond within 30 days.</p>
           </Section>
 
           <Section title="8. Cookies & Tracking">

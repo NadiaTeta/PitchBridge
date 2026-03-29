@@ -21,6 +21,8 @@ import { EntrepreneurProjectDetails } from './components/EntrepreneurProjectDeta
 import { AboutPage } from './components/AboutPage';
 import { ContactPage } from './components/ContactPage';
 import { Settings } from './components/Settings';
+import { EULA } from './components/Eula';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
 
 function AppLayout() {
   return (
@@ -48,6 +50,8 @@ function AppRoutes() {
       <Route path="/" element={<OnboardingScreen />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
+      <Route path="/eula" element={<EULA />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
       <Route path="/verify-email" element={<EmailVerification />} />

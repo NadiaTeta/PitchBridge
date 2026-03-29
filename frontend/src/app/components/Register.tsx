@@ -13,11 +13,13 @@ export function Register() {
   const { register } = useAuth();
 
   const [loading, setLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [formData, setFormData] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) { alert('Passwords do not match!'); return; }
+    if (!agreedToTerms) { alert('Please agree to the Terms of Service and Privacy Policy to continue.'); return; }
     setLoading(true);
     try {
       await register({ name: formData.fullName, email: formData.email, password: formData.password, role: role! });
@@ -104,10 +106,32 @@ export function Register() {
               </div>
             </div>
 
+            {/* EULA & Privacy Agreement */}
+            <div className="flex items-start gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+              <input
+                type="checkbox"
+                id="agree-terms"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-blue-600 flex-shrink-0 cursor-pointer"
+              />
+              <label htmlFor="agree-terms" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
+                I have read and agree to the{' '}
+                <Link to="/eula" target="_blank" className="text-blue-600 font-bold hover:underline">
+                  End-User Licence Agreement
+                </Link>{' '}
+                and{' '}
+                <Link to="/privacy-policy" target="_blank" className="text-blue-600 font-bold hover:underline">
+                  Privacy Policy
+                </Link>
+                . I understand that my identity documents will be used for verification purposes.
+              </label>
+            </div>
+
             <button
               type="submit"
-              disabled={loading}
-              className="w-full py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-bold transition-all shadow-xl active:scale-95 mt-4"
+              disabled={loading || !agreedToTerms}
+              className="w-full py-4 bg-slate-900 hover:bg-black disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-2xl font-bold transition-all shadow-xl active:scale-95 mt-4"
             >
               {loading ? 'Creating account...' : 'Complete Registration'}
             </button>

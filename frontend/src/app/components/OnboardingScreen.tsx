@@ -67,6 +67,15 @@ export function OnboardingScreen() {
             >
               Already have an account? <span className="text-blue-400">Log in here</span>
             </button>
+            <div className="flex items-center justify-center gap-4 mt-6">
+              <button onClick={() => navigate('/eula')} className="text-xs text-slate-600 hover:text-slate-400 transition-colors underline underline-offset-2">
+                Terms of Service
+              </button>
+              <span className="text-slate-700 text-xs">·</span>
+              <button onClick={() => navigate('/privacy-policy')} className="text-xs text-slate-600 hover:text-slate-400 transition-colors underline underline-offset-2">
+                Privacy Policy
+              </button>
+            </div>
           </div>
         </div>
       </section>
